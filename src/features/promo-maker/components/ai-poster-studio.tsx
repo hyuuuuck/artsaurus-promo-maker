@@ -693,6 +693,34 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
     return data.referenceImage;
   }
 
+  async function uploadSelectedReferenceFile(pose: ReferencePose, file: File) {
+    const label = referencePoseOptions.find((option) => option.value === pose)?.label ?? "참고 사진";
+    try {
+      setBusy("reference");
+      setMessage(`${label} 업로드 중`);
+      if (demoMode) {
+        const referenceImage = createDemoReferenceImage(pose, URL.createObjectURL(file));
+        setReferenceImages((current) => ({ ...current, [pose]: referenceImage }));
+        setMessage(`${label} 업로드 완료`);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set("file", file);
+      const data = await apiFetch<{ referenceImage: ReferenceImageRecord }>("/api/reference/upload", {
+        method: "POST",
+        body: formData,
+      });
+      setReferenceImages((current) => ({ ...current, [pose]: data.referenceImage }));
+      setMessage(`${label} 업로드 완료`);
+    } catch (error) {
+      setReferenceImages((current) => ({ ...current, [pose]: undefined }));
+      setMessage(error instanceof Error ? `${label} 업로드 실패: ${error.message}` : `${label} 업로드에 실패했습니다.`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function uploadReferencesIfNeeded() {
     setBusy("reference");
     setMessage(referenceFiles.front ? "사용할 사진 업로드 중" : "프로필 사진으로 기본 사진을 준비 중");
@@ -1511,6 +1539,7 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
     setBaselineAsset(null);
     setProposals([]);
     setApprovedAssetIds(new Set());
+    if (file) void uploadSelectedReferenceFile(pose, file);
   }
 
   function updateGenerationOptions(patch: Partial<typeof generationOptions>) {
@@ -1727,11 +1756,12 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
             {referencePoseOptions.map((pose) => {
               const preview = referencePreview(pose.value);
               const file = referenceFiles[pose.value];
+              const uploaded = referenceImages[pose.value];
               return (
                 <label key={pose.value} className="ai-upload-box ai-reference-upload">
                   <strong>{pose.label}</strong>
                   {preview ? <img src={preview} alt="" /> : <ImageIcon size={28} />}
-                  <span>{file ? file.name : pose.fallbackLabel}</span>
+                  <span>{uploaded ? `업로드 완료 · ${file?.name ?? pose.fallbackLabel}` : file ? `업로드 중 · ${file.name}` : pose.fallbackLabel}</span>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
