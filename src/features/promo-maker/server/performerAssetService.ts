@@ -260,7 +260,7 @@ async function generateBestCandidate(input: {
     candidates.sort((left, right) => right.selectionScore - left.selectionScore);
     return candidates[0]!;
   }
-  if (bestRejected && process.env.FACE_IDENTITY_STRICT !== "1") return bestRejected;
+  if (bestRejected && process.env.FACE_IDENTITY_STRICT === "0") return bestRejected;
   throw new StandaloneApiError(
     "FACE_IDENTITY_FILTER_REJECTED",
     bestRejected?.faceIdentity.reason || "DeepFace/local 얼굴 검사를 통과한 후보가 없습니다.",

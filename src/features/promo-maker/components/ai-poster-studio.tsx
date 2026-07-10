@@ -304,8 +304,10 @@ const wardrobeOptions = [
   { value: "simple modern concert casualwear", label: "캐주얼 공연복" },
 ] as const;
 
-const proposalCountOptions = [2, 4, 6, 8] as const;
-type ProposalCount = (typeof proposalCountOptions)[number];
+const posterProposalCountOptions = [2] as const;
+const profileVariantCountOptions = [5] as const;
+type ProposalCount = (typeof posterProposalCountOptions)[number];
+type ProfileVariantCount = (typeof profileVariantCountOptions)[number];
 
 const posterPromptPresets = [
   {
@@ -417,7 +419,7 @@ const profileVariantDirections = [
   },
 ] as const;
 
-function selectProfileVariantDirections(count: ProposalCount) {
+function selectProfileVariantDirections(count: number) {
   return profileVariantDirections.slice(0, count);
 }
 
@@ -455,8 +457,8 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
   const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus | null>(() => (demoMode ? createDemoPipelineStatus() : null));
   const [zoom, setZoom] = useState(0.52);
   const [baseScale, setBaseScale] = useState(0.52);
-  const [proposalCount, setProposalCount] = useState<ProposalCount>(4);
-  const [profileVariantCount, setProfileVariantCount] = useState<ProposalCount>(4);
+  const [proposalCount, setProposalCount] = useState<ProposalCount>(2);
+  const [profileVariantCount, setProfileVariantCount] = useState<ProfileVariantCount>(5);
   const [personImageConsent, setPersonImageConsent] = useState(false);
   const [assetUsageRightsConfirmed, setAssetUsageRightsConfirmed] = useState(false);
   const [approvedAssetIds, setApprovedAssetIds] = useState<Set<string>>(() => new Set());
@@ -1630,7 +1632,7 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
             <div className="ai-field">
               <span>포스터 시안 수</span>
               <div className="segmented-control proposal-count-control" role="group" aria-label="포스터 시안 수 선택">
-                {proposalCountOptions.map((count) => (
+                {posterProposalCountOptions.map((count) => (
                   <button key={count} type="button" className={proposalCount === count ? "active" : ""} onClick={() => setProposalCount(count)}>
                     {count}개
                   </button>
@@ -2047,7 +2049,7 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
               <div className="ai-profile-variant-actions">
                 <strong>프로필 후보 수</strong>
                 <div className="segmented-control proposal-count-control" role="group" aria-label="프로필 후보 수 선택">
-                  {proposalCountOptions.map((count) => (
+                  {profileVariantCountOptions.map((count) => (
                     <button
                       key={count}
                       type="button"
@@ -2822,7 +2824,7 @@ function createDemoPerformerAsset(input: {
   };
 }
 
-function createDemoProfileVariantAssets(sourceAsset: PerformerAssetRecord, count: ProposalCount): PerformerAssetRecord[] {
+function createDemoProfileVariantAssets(sourceAsset: PerformerAssetRecord, count: number): PerformerAssetRecord[] {
   return Array.from({ length: count }, (_, index) =>
     createDemoPerformerAsset({
       imageUrl: sourceAsset.generatedImageUrl || sourceAsset.thumbnailUrl || sourceAsset.cutoutPngUrl,
