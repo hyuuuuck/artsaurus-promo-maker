@@ -146,7 +146,7 @@ export function PosterCreateDevShell({ initialPerformance = defaultDraft }: { in
         </div>
       </section>
 
-      <AiPosterStudio key={studioKey} initialPerformance={applied} demoMode />
+      <AiPosterStudio key={studioKey} initialPerformance={applied} />
     </div>
   );
 }

@@ -1,0 +1,74 @@
+services:
+  web:
+    build:
+      context: .
+    ports:
+      - "${PORT:-3100}:3100"
+    environment:
+      IMAGE_GENERATION_PROVIDER: ${IMAGE_GENERATION_PROVIDER:-mock}
+      GOOGLE_AI_STUDIO_API_KEY: ${GOOGLE_AI_STUDIO_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GOOGLE_IMAGE_MODEL: ${GOOGLE_IMAGE_MODEL:-gemini-3.1-flash-image}
+      CUTOUT_PROVIDER: ${CUTOUT_PROVIDER:-rembg}
+      REMBG_ENDPOINT: ${REMBG_ENDPOINT:-http://rembg:7000/api/remove}
+      REMBG_MODEL: ${REMBG_MODEL:-u2net_human_seg}
+      REMBG_TIMEOUT_MS: ${REMBG_TIMEOUT_MS:-90000}
+      FACE_IDENTITY_CHECK: ${FACE_IDENTITY_CHECK:-auto}
+      FACE_IDENTITY_PROVIDER: ${FACE_IDENTITY_PROVIDER:-local}
+      FACE_IDENTITY_MIN_SCORE: ${FACE_IDENTITY_MIN_SCORE:-0.88}
+      FACE_IDENTITY_MIN_LOCAL_SCORE: ${FACE_IDENTITY_MIN_LOCAL_SCORE:-0.82}
+      FACE_IDENTITY_MAX_ATTEMPTS: ${FACE_IDENTITY_MAX_ATTEMPTS:-10}
+      FACE_IDENTITY_STRICT: ${FACE_IDENTITY_STRICT:-0}
+      DEEPFACE_API_URL: ${DEEPFACE_API_URL:-http://deepface:5006}
+      DEEPFACE_MODEL: ${DEEPFACE_MODEL:-ArcFace}
+      DEEPFACE_DETECTOR_BACKEND: ${DEEPFACE_DETECTOR_BACKEND:-retinaface}
+      DEEPFACE_DISTANCE_METRIC: ${DEEPFACE_DISTANCE_METRIC:-cosine}
+      DEEPFACE_TIMEOUT_MS: ${DEEPFACE_TIMEOUT_MS:-45000}
+      POSTER_ORCHESTRATOR_PLANNER: ${POSTER_ORCHESTRATOR_PLANNER:-auto}
+      POSTER_ORCHESTRATOR_MODEL: ${POSTER_ORCHESTRATOR_MODEL:-gemini-2.5-flash}
+      POSTER_PROPOSAL_VARIANT_PROVIDER: ${POSTER_PROPOSAL_VARIANT_PROVIDER:-candidate-pool}
+      POSTER_PROPOSAL_VARIANT_POOL_SIZE: ${POSTER_PROPOSAL_VARIANT_POOL_SIZE:-10}
+    volumes:
+      - promo_maker_data:/app/.promo-maker-data
+      - promo_maker_generated:/app/public/generated
+    depends_on:
+      rembg:
+        condition: service_healthy
+    restart: unless-stopped
+
+  rembg:
+    image: danielgatis/rembg:latest
+    command: ["s", "--host", "0.0.0.0", "--port", "7000", "--no-ui"]
+    environment:
+      U2NET_HOME: /models
+    ports:
+      - "${REMBG_PORT:-7000}:7000"
+    volumes:
+      - rembg_models:/models
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7000/api', timeout=3).read()"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
+    restart: unless-stopped
+
+  deepface:
+    profiles: ["deepface"]
+    build:
+      context: .
+      dockerfile: services/deepface/Dockerfile
+    environment:
+      DEEPFACE_HOME: /models
+      TF_CPP_MIN_LOG_LEVEL: "2"
+    ports:
+      - "${DEEPFACE_PORT:-5006}:5006"
+    volumes:
+      - deepface_models:/models
+    restart: unless-stopped
+
+volumes:
+  promo_maker_data:
+  promo_maker_generated:
+  rembg_models:
+  deepface_models:

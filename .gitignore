@@ -3,6 +3,9 @@ node_modules
 out
 dist
 coverage
+tsconfig.tsbuildinfo
+.promo-maker-data
+public/generated
 .env
 .env.local
 .DS_Store
