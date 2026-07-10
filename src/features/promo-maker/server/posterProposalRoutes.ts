@@ -110,20 +110,12 @@ export async function POST_GENERATE(request: Request) {
     });
 
     const missingVisualTemplates = templates.filter((template) => !performerVisuals[template.id]);
+    const visualFallbackTemplateIds = missingVisualTemplates.map((template) => template.id);
     if (missingVisualTemplates.length) {
-      const available = templates.length - missingVisualTemplates.length;
-      await markRunFailed(generationRunId, "Not enough distinct performer profile candidates for poster proposals.");
-      generationRunId = null;
-      return errorResponse(
-        "PROFILE_VARIANTS_REQUIRED",
-        `같은 누끼를 복붙한 포스터 시안은 만들지 않습니다. 현재 사용할 수 있는 프로필 후보가 ${available}/${templates.length}개입니다. 먼저 프로필 후보를 ${proposalCount}개 만든 뒤 다시 시안 만들기를 눌러 주세요.`,
-        422,
-        {
-          required: templates.length,
-          available,
-          missingTemplateIds: missingVisualTemplates.map((template) => template.id),
-        },
-      );
+      const fallbackVisual = fallbackPerformerVisual(performerAsset);
+      for (const template of missingVisualTemplates) {
+        performerVisuals[template.id] = fallbackVisual;
+      }
     }
 
     await mutateDb((mutable) => {
@@ -131,7 +123,9 @@ export async function POST_GENERATE(request: Request) {
       if (run) {
         run.status = "running";
         run.plannerProvider = plannedGeneration.plannerProvider;
-        run.plannerFallbackReason = plannedGeneration.fallbackReason ?? null;
+        run.plannerFallbackReason =
+          plannedGeneration.fallbackReason ??
+          (visualFallbackTemplateIds.length ? `performer_variant_fallback:${visualFallbackTemplateIds.join(",")}` : null);
         run.planJson = JSON.stringify(orchestrationPlan);
         run.stepsJson = JSON.stringify(orchestrationPlan.steps);
         run.updatedAt = new Date();
@@ -202,11 +196,19 @@ export async function POST_GENERATE(request: Request) {
       proposals,
       orchestrationPlan,
       orchestrationRun: completedRun ? serializePosterGenerationRun(completedRun) : undefined,
+      visualFallbackTemplateIds,
     });
   } catch (error) {
     if (generationRunId) await markRunFailed(generationRunId, error instanceof Error ? error.message.slice(0, 500) : "Poster generation failed.");
     return parseError(error);
   }
+}
+
+function fallbackPerformerVisual(asset: GeneratedPerformerAsset): PerformerVisual {
+  return {
+    generatedImageUrl: asset.generatedImageUrl,
+    cutoutPngUrl: asset.cutoutPngUrl || asset.generatedImageUrl,
+  };
 }
 
 async function markRunFailed(id: string, message: string) {

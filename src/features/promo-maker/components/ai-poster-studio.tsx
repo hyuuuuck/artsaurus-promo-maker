@@ -124,6 +124,9 @@ type AssetMetadata = {
   profilePolishFallbackReason?: string;
   profilePolishSkippedReason?: string;
   identityMode?: string;
+  approvedForPosterUse?: boolean;
+  lockedIdentity?: boolean;
+  lockedFace?: boolean;
 };
 
 type ProposalRecord = {
@@ -186,6 +189,13 @@ type PosterGenerationRunRecord = {
   backgroundMode?: string;
   layoutDensity?: string;
   warnings?: string[];
+};
+
+type PosterProposalGenerateResponse = {
+  proposals: ProposalRecord[];
+  orchestrationPlan?: PosterGenerationPlanRecord;
+  orchestrationRun?: PosterGenerationRunRecord;
+  visualFallbackTemplateIds?: string[];
 };
 
 type ProfileVariantFailureRecord = {
@@ -541,7 +551,9 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
       assetMetadata.cutoutStatus !== "not_attempted",
   );
   const assetGenerationDisabled = Boolean(busy) || (generationOptions.identityMode === "pose_synthesis" && !poseSynthesisUnlocked);
-  const performerAssetApproved = Boolean(performerAsset && approvedAssetIds.has(performerAsset.id));
+  const isAssetApprovedForPoster = (asset: PerformerAssetRecord, metadata = parseAssetMetadata(asset.providerMetadataJson)) =>
+    approvedAssetIds.has(asset.id) || isAssetMetadataApprovedForPosterUse(metadata);
+  const performerAssetApproved = Boolean(performerAsset && isAssetApprovedForPoster(performerAsset, assetMetadata));
   const selectedAssetNeedsProfileCandidate = Boolean(performerAsset && !isPosterReadyPerformerAsset(performerAsset, assetMetadata));
   const proposalVariantEngineReady = Boolean(pipelineStatus?.proposalVariants?.ready);
   const posterCandidateAssets = useMemo(
@@ -1005,7 +1017,7 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
 
       const selectedAsset = performerAsset;
       const selectedMetadata = parseAssetMetadata(selectedAsset?.providerMetadataJson);
-      if (selectedAsset && isPosterReadyPerformerAsset(selectedAsset, selectedMetadata) && approvedAssetIds.has(selectedAsset.id)) {
+      if (selectedAsset && isPosterReadyPerformerAsset(selectedAsset, selectedMetadata) && isAssetApprovedForPoster(selectedAsset, selectedMetadata)) {
         await handleGenerateProposals(selectedAsset);
         return;
       }
@@ -1054,7 +1066,7 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
       if (selectedAsset && approveOverride) {
         setApprovedAssetIds((current) => new Set(current).add(selectedAsset.id));
       }
-      if (selectedAsset && !approveOverride && !approvedAssetIds.has(selectedAsset.id)) {
+      if (selectedAsset && !approveOverride && !isAssetApprovedForPoster(selectedAsset, selectedMetadata)) {
         setPerformerAsset(selectedAsset);
         setMessage("먼저 사용할 프로필 후보 에셋을 승인해 주세요.");
         return;
@@ -1071,7 +1083,7 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
         setMessage("누끼 에셋이 준비됐습니다. 포스터 시안 전에 이 에셋으로 프로필 후보를 만들고 하나를 선택해 주세요.");
         return;
       }
-      if (!approveOverride && !approvedAssetIds.has(asset.id)) {
+      if (!approveOverride && !isAssetApprovedForPoster(asset, nextAssetMetadata)) {
         setPerformerAsset(asset);
         setMessage("프로필 후보가 준비됐습니다. 미리보기에서 승인한 뒤 포스터 시안을 생성해 주세요.");
         return;
@@ -1107,7 +1119,7 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
         setMessage(`개발용 포스터 시안 ${demo.proposals.length}개가 생성됐습니다. 시안을 눌러 편집 화면을 확인하세요.`);
         return;
       }
-      const data = await apiFetch<{ proposals: ProposalRecord[]; orchestrationPlan?: PosterGenerationPlanRecord; orchestrationRun?: PosterGenerationRunRecord }>("/api/poster-proposals/generate", {
+      const data = await apiFetch<PosterProposalGenerateResponse>("/api/poster-proposals/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1127,7 +1139,13 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
       setSelectedLayerId(null);
       await refreshGenerationRuns();
       window.requestAnimationFrame(() => proposalSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
-      setMessage(`포스터 시안 ${data.proposals.length}개가 생성됐습니다.${data.orchestrationPlan?.summary ? ` 계획: ${data.orchestrationPlan.summary}` : ""}`);
+      setMessage(
+        `포스터 시안 ${data.proposals.length}개가 생성됐습니다.${
+          data.visualFallbackTemplateIds?.length
+            ? ` 일부 시안은 새 프로필 변형이 얼굴/누끼 검사를 통과하지 못해 승인 에셋으로 대체했습니다.`
+            : ""
+        }${data.orchestrationPlan?.summary ? ` 계획: ${data.orchestrationPlan.summary}` : ""}`,
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "포스터 시안 생성에 실패했습니다.");
     } finally {
@@ -4099,6 +4117,9 @@ function parseAssetMetadata(value?: string | null): AssetMetadata {
       profilePolishFallbackReason?: unknown;
       profilePolishSkippedReason?: unknown;
       identityMode?: unknown;
+      approved_for_poster_use?: unknown;
+      locked_identity?: unknown;
+      locked_face?: unknown;
     };
     const metadata = {
       cutoutStatus: "unknown",
@@ -4120,6 +4141,9 @@ function parseAssetMetadata(value?: string | null): AssetMetadata {
       profilePolishFallbackReason: typeof parsed.profilePolishFallbackReason === "string" ? parsed.profilePolishFallbackReason : undefined,
       profilePolishSkippedReason: typeof parsed.profilePolishSkippedReason === "string" ? parsed.profilePolishSkippedReason : undefined,
       identityMode: typeof parsed.identityMode === "string" ? parsed.identityMode : undefined,
+      approvedForPosterUse: typeof parsed.approved_for_poster_use === "boolean" ? parsed.approved_for_poster_use : undefined,
+      lockedIdentity: typeof parsed.locked_identity === "boolean" ? parsed.locked_identity : undefined,
+      lockedFace: typeof parsed.locked_face === "boolean" ? parsed.locked_face : undefined,
     } as AssetMetadata;
     if (parsed.faceIdentityStatus === "passed" || parsed.faceIdentityStatus === "failed" || parsed.faceIdentityStatus === "unchecked") {
       metadata.faceIdentityStatus = parsed.faceIdentityStatus;
@@ -4179,6 +4203,10 @@ function isPosterReadyPerformerAsset(asset: PerformerAssetRecord, metadata: Asse
     metadata.identityMode === "portrait_variant" ||
     metadata.identityMode === "pose_synthesis"
   );
+}
+
+function isAssetMetadataApprovedForPosterUse(metadata: AssetMetadata) {
+  return metadata.approvedForPosterUse !== false && metadata.lockedIdentity !== false && metadata.lockedFace !== false;
 }
 
 function savedAssetUsage(asset: PerformerAssetRecord) {
