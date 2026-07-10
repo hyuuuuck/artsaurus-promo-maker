@@ -6,7 +6,7 @@ import { buildPosterProposals, selectPosterProposalTemplates, type PerformerVisu
 import { generateProposalPerformerVariants } from "../poster/proposalPerformerVariants";
 import { analyzePosterProposalQuality, autoRepairPosterDesign } from "../poster/proposalQuality";
 import { renderAndStorePosterPreview } from "../poster/renderPosterPreview";
-import type { PosterConcertInfo } from "../poster/types";
+import type { PosterConcertInfo, PosterTemplateId } from "../poster/types";
 import { errorResponse, ok, parseError, parseRecord, readJson } from "./http";
 import { insertByNewest, mutateDb, readDb, standaloneUserId } from "./localStore";
 import type { GeneratedPerformerAsset, PosterGenerationRun, PosterProposal } from "./types";
@@ -93,14 +93,23 @@ export async function POST_GENERATE(request: Request) {
       naturalLanguagePrompt: readString(payload.orchestrationPrompt),
     });
     const orchestrationPlan = plannedGeneration.plan;
-    const templates = selectPosterProposalTemplates(proposalCount, orchestrationPlan.layoutJob.templateIds);
-    const performerVisuals: Partial<Record<PosterTemplateMeta["id"], PerformerVisual>> = await generateProposalPerformerVariants({
-      userId: standaloneUserId(),
-      performerAsset,
-      concertInfo,
-      templates,
-      orchestrationPlan,
-    });
+    const assetMetadata = parseMetadata(performerAsset.providerMetadataJson);
+    const templates = selectPosterProposalTemplates(
+      proposalCount,
+      assetMetadata.cutoutStatus === "fallback_source"
+        ? photoSafeTemplatePreference(orchestrationPlan.layoutJob.templateIds)
+        : orchestrationPlan.layoutJob.templateIds,
+    );
+    const performerVisuals: Partial<Record<PosterTemplateMeta["id"], PerformerVisual>> =
+      assetMetadata.cutoutStatus === "fallback_source"
+        ? {}
+        : await generateProposalPerformerVariants({
+            userId: standaloneUserId(),
+            performerAsset,
+            concertInfo,
+            templates,
+            orchestrationPlan,
+          });
     fillMissingPerformerVisualsFromSavedCandidates({
       performerAsset,
       candidateAssetIds: readStringArray(payload.candidateAssetIds),
@@ -205,10 +214,31 @@ export async function POST_GENERATE(request: Request) {
 }
 
 function fallbackPerformerVisual(asset: GeneratedPerformerAsset): PerformerVisual {
+  const metadata = parseMetadata(asset.providerMetadataJson);
+  if (metadata.cutoutStatus === "fallback_source") {
+    return {
+      generatedImageUrl: asset.generatedImageUrl,
+      cutoutPngUrl: asset.generatedImageUrl,
+    };
+  }
+
   return {
     generatedImageUrl: asset.generatedImageUrl,
     cutoutPngUrl: asset.cutoutPngUrl || asset.generatedImageUrl,
   };
+}
+
+function photoSafeTemplatePreference(preferredTemplateIds: PosterTemplateId[] = []): PosterTemplateId[] {
+  const photoSafe: PosterTemplateId[] = ["concert-hall-classic", "premium-monochrome", "grid-portfolio"];
+  return [
+    ...photoSafe,
+    ...preferredTemplateIds.filter((templateId) => !photoSafe.includes(templateId)),
+    "minimal-recital",
+    "modern-typography",
+    "black-editorial",
+    "soft-romantic",
+    "experimental-contemporary",
+  ];
 }
 
 async function markRunFailed(id: string, message: string) {

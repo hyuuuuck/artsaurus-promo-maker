@@ -547,7 +547,6 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
   const assetReadyForProposals = Boolean(
     performerAsset?.generatedImageUrl &&
       performerAsset.cutoutPngUrl &&
-      assetMetadata.cutoutStatus !== "fallback_source" &&
       assetMetadata.cutoutStatus !== "not_attempted",
   );
   const assetGenerationDisabled = Boolean(busy) || (generationOptions.identityMode === "pose_synthesis" && !poseSynthesisUnlocked);
@@ -1072,7 +1071,7 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
         return;
       }
       const asset =
-        selectedAsset && selectedMetadata.cutoutStatus !== "fallback_source" && selectedMetadata.cutoutStatus !== "not_attempted"
+        selectedAsset && selectedMetadata.cutoutStatus !== "not_attempted"
           ? selectedAsset
           : assetReadyForProposals && performerAsset
             ? performerAsset
@@ -1100,7 +1099,9 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
       setMessage(
         promptForRequest
           ? `${proposalCount}개 포스터 시안 생성 중: 선택한 방향 템플릿으로 생성 계획을 만듭니다.`
-          : `${proposalCount}개 포스터 시안 생성 중: 기본 템플릿 계획으로 만듭니다.`,
+          : selectedMetadata.cutoutStatus === "fallback_source"
+            ? `${proposalCount}개 포스터 시안 생성 중: 누끼 없이 사진형 템플릿으로 만듭니다.`
+            : `${proposalCount}개 포스터 시안 생성 중: 기본 템플릿 계획으로 만듭니다.`,
       );
       if (demoMode) {
         const demo = createDemoPosterProposals({
@@ -2086,7 +2087,11 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
                 ) : (
                   <>
                     <strong>다음 작업: 포스터 시안 생성</strong>
-                    <span>승인한 연주자 에셋은 얼굴/정체성 잠금 레이어로 들어갑니다.</span>
+                    <span>
+                      {hasTransparentCutout
+                        ? "승인한 연주자 에셋은 얼굴/정체성 잠금 레이어로 들어갑니다."
+                        : "누끼가 불안정해도 이 에셋을 버리지 않고 사진형 포스터 시안으로 만듭니다."}
+                    </span>
                     <Button type="button" onClick={() => handleGenerateProposals()} disabled={Boolean(busy) || !currentAssetCanGenerateProposals}>
                       {busy === "proposals" ? <Loader2 className="spin-icon" size={16} /> : <Sparkles size={16} />}
                       {proposalCount}개 포스터 시안 만들기
