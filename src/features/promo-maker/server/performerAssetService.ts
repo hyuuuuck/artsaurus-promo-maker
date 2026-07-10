@@ -13,6 +13,7 @@ import { generatePerformerAssetWithGoogleAiStudio, type GeneratedImageResult } f
 import { generateMockPerformerAsset } from "@/lib/image-generation/providers/mockPerformerAssetProvider";
 import type { PerformerAssetGenerationOptions } from "../poster/types";
 import { performerAssetAllowedOperations, performerAssetDisallowedOperations, performerAssetSourceTypeFromMode } from "../poster/assetPolicy";
+import { getProposalVariantPipelineStatus } from "../poster/proposalPerformerVariants";
 import { storePosterObject } from "../poster/storage";
 import { insertByNewest, mutateDb, readDb, standaloneUserId } from "./localStore";
 import type { GeneratedPerformerAsset, ReferenceImage } from "./types";
@@ -80,14 +81,7 @@ export async function getPerformerAssetPipelineStatus() {
       deepFaceApiUrlPresent: Boolean(faceIdentity.deepFaceApiUrl),
       ready: !faceIdentity.enabled || faceIdentity.provider !== "deepface" || Boolean(faceIdentity.deepFaceApiUrl),
     },
-    proposalVariants: {
-      mode: process.env.POSTER_PROPOSAL_VARIANT_PROVIDER?.trim() || "candidate-pool",
-      provider: hasGoogleKey() ? "google-ai-studio" : "off",
-      ready: hasGoogleKey(),
-      googleKeyPresent: hasGoogleKey(),
-      comfyPoseReady: false,
-      candidatePoolSize: Number(process.env.POSTER_PROPOSAL_VARIANT_POOL_SIZE ?? 10),
-    },
+    proposalVariants: getProposalVariantPipelineStatus(),
   };
 }
 
@@ -178,7 +172,11 @@ export async function generatePerformerAsset(input: GenerateInput) {
       allowed_operations: [...performerAssetAllowedOperations],
       disallowed_operations: [...performerAssetDisallowedOperations],
       baselineAssetId: baselineAsset?.id,
-      referenceImageIds: Object.fromEntries(references.map((reference) => [reference.id, reference.originalUrl])),
+      referenceImageIds: {
+        front: input.referenceImageIds?.front || input.referenceImageId,
+        left: input.referenceImageIds?.left,
+        right: input.referenceImageIds?.right,
+      },
       cutoutStatus: cutout.status,
       cutoutProvider: cutout.provider,
       cutoutModel: cutout.model,

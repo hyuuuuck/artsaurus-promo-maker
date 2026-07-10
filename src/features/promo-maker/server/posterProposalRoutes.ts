@@ -3,6 +3,7 @@ import { buildPerformerAsset, isPerformerAssetApprovedForPosterUse } from "../po
 import { serializePosterGenerationRun } from "../poster/generationRun";
 import { planPosterGeneration } from "../poster/generationOrchestrator";
 import { buildPosterProposals, selectPosterProposalTemplates, type PerformerVisual, type PosterTemplateMeta } from "../poster/posterProposalTemplates";
+import { generateProposalPerformerVariants } from "../poster/proposalPerformerVariants";
 import { analyzePosterProposalQuality, autoRepairPosterDesign } from "../poster/proposalQuality";
 import { renderAndStorePosterPreview } from "../poster/renderPosterPreview";
 import type { PosterConcertInfo } from "../poster/types";
@@ -93,7 +94,13 @@ export async function POST_GENERATE(request: Request) {
     });
     const orchestrationPlan = plannedGeneration.plan;
     const templates = selectPosterProposalTemplates(proposalCount, orchestrationPlan.layoutJob.templateIds);
-    const performerVisuals: Partial<Record<PosterTemplateMeta["id"], PerformerVisual>> = {};
+    const performerVisuals: Partial<Record<PosterTemplateMeta["id"], PerformerVisual>> = await generateProposalPerformerVariants({
+      userId: standaloneUserId(),
+      performerAsset,
+      concertInfo,
+      templates,
+      orchestrationPlan,
+    });
     fillMissingPerformerVisualsFromSavedCandidates({
       performerAsset,
       candidateAssetIds: readStringArray(payload.candidateAssetIds),

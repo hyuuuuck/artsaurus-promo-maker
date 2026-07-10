@@ -8,7 +8,8 @@ This app intentionally focuses on the promo-maker flow only:
 - no performance database
 - no Prisma
 - local JSON/file storage under `.promo-maker-data` and `public/generated`
-- mock image generation by default, with optional Google AI Studio, rembg, and DeepFace sidecars
+- mock image generation by default, with optional Google AI Studio, rembg, DeepFace, and ComfyUI sidecars
+- the same AI poster studio UI, simple editor, OCR import, saved project loading, poster export, locked performer layer policy, and proposal quality checks used by the ArtSaurus page
 
 ## Development
 
@@ -60,6 +61,8 @@ DEEPFACE_API_URL=http://localhost:5006
 
 To use Google AI Studio for profile candidates, add `GOOGLE_AI_STUDIO_API_KEY` or `GEMINI_API_KEY`. The current product rule is still enforced: raw uploaded photos produce performer assets first, approved performer assets are locked into poster layers, and poster text remains editable.
 
+Poster proposal variants are not simple cutout paste-ups. When `POSTER_PROPOSAL_VARIANT_PROVIDER=auto` and Google AI Studio or ComfyUI pose workflows are configured, each poster template first requests performer profile variants, runs face identity filtering through DeepFace/local/Gemini review, rejects near-duplicate cutouts, then assigns the accepted visual to the proposal.
+
 The standalone page preserves the ArtSaurus app shell proportions:
 
 - `page-shell`
@@ -76,6 +79,10 @@ That wrapper is important because the poster canvas scale depends on the availab
 - `src/features/promo-maker/components/ai-poster-studio.tsx`
 - `src/features/promo-maker/server/*`
 - `src/features/promo-maker/poster/*`
+- `src/features/promo-maker/promo-design/*`
+- `src/lib/image-generation/*`
+- `src/lib/image-processing/*`
+- `src/lib/prompt/*`
 - `src/features/promo-maker/styles.css`
 - `src/app/globals.css`
 - `services/deepface/*`
