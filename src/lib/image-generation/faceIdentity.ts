@@ -203,7 +203,7 @@ export function getFaceIdentityConfig() {
   const provider = readProviderEnv();
   const threshold = readNumberEnv("FACE_IDENTITY_MIN_SCORE", 0.88, 0.45, 0.98);
   const localThreshold = readNumberEnv("FACE_IDENTITY_MIN_LOCAL_SCORE", 0.82, 0.45, 0.98);
-  const maxAttempts = Math.round(readNumberEnv("FACE_IDENTITY_MAX_ATTEMPTS", 10, 1, 12));
+  const maxAttempts = Math.round(readNumberEnv("FACE_IDENTITY_MAX_ATTEMPTS", 2, 1, 12));
   const model = process.env.FACE_IDENTITY_MODEL?.trim() || process.env.GOOGLE_TEXT_MODEL?.trim() || "gemini-2.5-flash";
   const deepFaceApiUrl = normalizeServiceUrl(process.env.DEEPFACE_API_URL);
   return {

@@ -19,7 +19,7 @@ import { readDb } from "../server/localStore";
 
 export const POSTER_PROPOSAL_VARIANT_PROMPT_VERSION = "poster-proposal-performer-v3";
 const DUPLICATE_CUTOUT_IOU_THRESHOLD = 0.88;
-const DEFAULT_VARIANT_CANDIDATE_POOL_SIZE = 10;
+const DEFAULT_VARIANT_CANDIDATE_POOL_SIZE = 2;
 
 type GenerateProposalVariantsInput = {
   userId: string;

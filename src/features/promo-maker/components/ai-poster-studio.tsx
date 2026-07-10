@@ -853,7 +853,7 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
       setProfileVariantAssets([]);
       setProfileVariantFailures([]);
       const profileTemplates = selectProfileVariantDirections(profileVariantCount);
-      const maxVariantAttempts = Math.min(10, profileVariantCount + 2);
+      const maxVariantAttempts = profileVariantCount;
       setMessage(`${profileVariantCount}개 프로필 후보 생성 중: 선택된 템플릿 슬롯으로 얼굴 방향을 고정합니다.`);
 
       const generatedAssets: PerformerAssetRecord[] = [];
@@ -1569,8 +1569,8 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
     message,
     proposalCount,
     profileVariantCount,
-    faceCandidatePoolSize: pipelineStatus?.faceIdentity?.maxAttempts ?? 10,
-    proposalCandidatePoolSize: pipelineStatus?.proposalVariants?.candidatePoolSize ?? 10,
+    faceCandidatePoolSize: pipelineStatus?.faceIdentity?.maxAttempts ?? 2,
+    proposalCandidatePoolSize: pipelineStatus?.proposalVariants?.candidatePoolSize ?? 2,
   });
 
   return (
@@ -4286,10 +4286,10 @@ function proposalVariantStatusLabel(
     if (status.provider === "comfyui-faceid-controlnet") return "ComfyUI 포스터 시안용 연주자 변형이 선택됐지만 FaceID/OpenPose 워크플로가 준비되지 않아 프로필 후보를 먼저 충분히 만들어야 합니다.";
   }
   if (status.provider === "comfyui-faceid-controlnet") {
-    return `${proposalCount}개 포스터 시안마다 FaceID/OpenPose 기반 연주자 변형을 ${status.candidatePoolSize ?? 10}개 후보 중 최고점으로 고릅니다.`;
+    return `${proposalCount}개 포스터 시안마다 FaceID/OpenPose 기반 연주자 변형을 ${status.candidatePoolSize ?? 2}개 후보 중 최고점으로 고릅니다.`;
   }
   if (status.provider === "google-ai-studio") {
-    return `${proposalCount}개 포스터 시안마다 Google AI Studio 후보 ${status.candidatePoolSize ?? 10}개를 만들고 얼굴 점수 최고 후보를 씁니다.`;
+    return `${proposalCount}개 포스터 시안마다 Google AI Studio 후보 ${status.candidatePoolSize ?? 2}개를 만들고 얼굴 점수 최고 후보를 씁니다.`;
   }
   if (status.mode === "off") {
     return "포스터 시안별 연주자 변형이 꺼져 있습니다. 같은 누끼 복붙을 막기 위해 저장된 프로필 후보가 포스터 시안 수만큼 필요합니다.";
