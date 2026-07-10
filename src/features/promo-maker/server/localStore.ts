@@ -48,7 +48,7 @@ export function insertByNewest<T extends { id: string; createdAt: Date; updatedA
 export function serializeProject(project: PosterProject) {
   return {
     ...project,
-    editableDesign: project.editableDesign ?? JSON.parse(project.editableDesignJson),
+    editableDesign: project.editableDesign ?? safeParseJson(project.editableDesignJson, null),
   };
 }
 
@@ -96,9 +96,31 @@ function reviveProject(item: PosterProject): PosterProject {
 function reviveRun(item: PosterGenerationRun): PosterGenerationRun {
   return {
     ...item,
+    planJson: normalizeJsonString(item.planJson),
+    stepsJson: normalizeJsonString(item.stepsJson),
     startedAt: reviveDate(item.startedAt),
     completedAt: item.completedAt ? reviveDate(item.completedAt) : null,
     createdAt: reviveDate(item.createdAt),
     updatedAt: reviveDate(item.updatedAt),
   };
+}
+
+function normalizeJsonString(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") return value.trim() ? value : null;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return null;
+  }
+}
+
+function safeParseJson<T>(value: unknown, fallback: T): unknown | T {
+  if (!value) return fallback;
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return fallback;
+  }
 }

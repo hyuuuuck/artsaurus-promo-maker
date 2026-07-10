@@ -60,11 +60,11 @@ export function serializePosterGenerationRun(run: SerializablePosterGenerationRu
   };
 }
 
-function parseGenerationPlanSnapshot(value: string | null) {
+function parseGenerationPlanSnapshot(value: unknown) {
   if (!value) return emptyPlanSnapshot();
 
   try {
-    const parsed = JSON.parse(value) as unknown;
+    const parsed = typeof value === "string" ? (JSON.parse(value) as unknown) : value;
     if (!isRecord(parsed)) return emptyPlanSnapshot();
     const layoutJob = isRecord(parsed.layoutJob) ? parsed.layoutJob : {};
     const performerAssetJob = isRecord(parsed.performerAssetJob) ? parsed.performerAssetJob : {};
