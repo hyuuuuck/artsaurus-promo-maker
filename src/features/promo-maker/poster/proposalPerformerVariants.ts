@@ -370,6 +370,8 @@ function inferInstrument(options: PerformerAssetOptions, concertInfo: PosterConc
 
 function templateMood(templateId: PosterTemplateId) {
   switch (templateId) {
+    case "recital-photo-editorial":
+      return "full-frame classical recital editorial portrait, elegant program poster mood, same face direction as reference, identity locked, no sticker-photo pose";
     case "minimal-recital":
       return "minimal premium recital portrait, quiet confidence, refined studio lighting, face angle close to the identity reference";
     case "black-editorial":

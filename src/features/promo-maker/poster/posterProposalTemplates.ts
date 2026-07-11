@@ -3,6 +3,7 @@ import {
   POSTER_CANVAS,
   type PosterConcertInfo,
   type PosterDesign,
+  type PosterImageLayer,
   type PosterLayer,
   type PosterProposalDraft,
   type PosterQrTargetType,
@@ -32,6 +33,7 @@ export type PosterTemplateMeta = {
 };
 
 export const posterProposalTemplates: PosterTemplateMeta[] = [
+  { id: "recital-photo-editorial", title: "Recital Photo Editorial", background: "#56584f" },
   { id: "minimal-recital", title: "Minimal Recital", background: "#f7f3ec" },
   { id: "black-editorial", title: "Black Editorial", background: "#0d0d0f" },
   { id: "concert-hall-classic", title: "Concert Hall Classic", background: "#efe2ca" },
@@ -70,11 +72,39 @@ function buildDesignForTemplate(template: PosterTemplateMeta, index: number, inp
   const title = input.concertInfo.title || "Untitled Concert";
   const performerName = input.concertInfo.performerName || "Performer";
   const subtitle = input.concertInfo.subtitle || input.concertInfo.program || "Recital";
+  const programLine = formatProgramLine(input.concertInfo.program || "A. Scriabin        F. Chopin        F. Schubert");
+  const recitalRole = resolveRecitalRole(input.concertInfo);
   const dateText = input.concertInfo.dateText || "Date TBA";
   const venueName = input.concertInfo.venueName || "Venue TBA";
   const qrTargetType = input.concertInfo.qrTargetType ?? "ticket_link";
   const qrTargetUrl = input.qrTargetUrl;
   const commonLayers: PosterLayer[] = [];
+
+  if (template.id === "recital-photo-editorial") {
+    const fullPhoto = image("performer", performerVisual.generatedImageUrl, 0, 0, 1080, 1350, "cover") as PosterImageLayer;
+    fullPhoto.adjustments = {
+      brightness: 0.96,
+      contrast: 0.98,
+      saturation: 0.82,
+      tintColor: "#67685e",
+      tintStrength: 0.18,
+    };
+    commonLayers.push(
+      fullPhoto,
+      shape("photo-tone", "rect", 0, 0, 1080, 1350, "rgba(47,48,43,0.24)"),
+      shape("bottom-readable-veil", "rect", 0, 724, 1080, 626, "rgba(24,24,22,0.28)"),
+      text("program", programLine, 44, 24, 992, 36, 21, 500, "#f2eee5", "center", "poster-myeongjo", { lineHeight: 1.05 }),
+      text("recital-title", subtitle, 112, 78, 856, 54, 33, 500, "#f8f4eb", "center", "poster-myeongjo", { lineHeight: 1.05 }),
+      text("performer-name", performerName, 70, 652, 940, 142, 92, 400, "#ffffff", "center", "poster-myeongjo", {
+        fontStyle: "italic",
+        lineHeight: 0.96,
+      }),
+      text("role", recitalRole, 300, 806, 480, 48, 29, 700, "#fffdf8", "center", "poster-myeongjo", { letterSpacing: 3 }),
+      text("meta", `${dateText}   ${venueName}`, 112, 1186, 760, 42, 24, 700, "#ffffff", "center", "poster-nanum-gothic"),
+      text("ticket", input.concertInfo.qrTargetUrl ? "예매 및 공연 정보는 QR을 확인해 주세요" : "공연 문의 및 예매 정보", 170, 1242, 640, 34, 17, 500, "#eee9df", "center", "poster-nanum-gothic"),
+      qr("qr", qrTargetType, qrTargetUrl, 914, 1184, 96, "#111111", "#ffffff", "QR"),
+    );
+  }
 
   if (template.id === "minimal-recital") {
     commonLayers.push(
@@ -350,6 +380,7 @@ function text(
   color: string,
   align: "left" | "center" | "right",
   fontFamily: string,
+  options: Partial<Pick<PosterTextLayer, "fontStyle" | "lineHeight" | "letterSpacing">> = {},
 ): PosterLayer {
   return {
     id,
@@ -365,10 +396,29 @@ function text(
     fontWeight,
     color,
     align,
-    lineHeight: 1.08,
+    fontStyle: options.fontStyle,
+    lineHeight: options.lineHeight ?? 1.08,
+    letterSpacing: options.letterSpacing ?? 0,
     opacity: 1,
     visible: true,
   };
+}
+
+function resolveRecitalRole(concertInfo: PosterConcertInfo) {
+  const joined = [concertInfo.subtitle, concertInfo.title, concertInfo.program].filter(Boolean).join(" ").toLowerCase();
+  if (/violin|바이올린/.test(joined)) return "VIOLIN RECITAL";
+  if (/cello|첼로/.test(joined)) return "CELLO RECITAL";
+  if (/vocal|voice|soprano|tenor|baritone|성악|소프라노|테너|바리톤/.test(joined)) return "VOCAL RECITAL";
+  return "PIANO RECITAL";
+}
+
+function formatProgramLine(value: string) {
+  return value
+    .split(/\s{2,}|\n|,|;/u)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 4)
+    .join("  ·  ");
 }
 
 function image(

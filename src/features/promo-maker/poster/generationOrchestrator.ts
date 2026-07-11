@@ -323,7 +323,7 @@ async function generateGoogleAiStudioPlanOverrides(input: {
                   qrPriority: "standard|high",
                   warnings: ["short Korean warning"],
                 }),
-                "Allowed templateIds: minimal-recital, black-editorial, concert-hall-classic, modern-typography, soft-romantic, experimental-contemporary, premium-monochrome, grid-portfolio.",
+                "Allowed templateIds: recital-photo-editorial, minimal-recital, black-editorial, concert-hall-classic, modern-typography, soft-romantic, experimental-contemporary, premium-monochrome, grid-portfolio.",
                 `Proposal count: ${input.input.proposalCount}. Return at most that many templateIds.`,
                 `Concert info: ${JSON.stringify(input.input.concertInfo)}`,
                 `Deterministic baseline plan: ${JSON.stringify(input.deterministicPlan)}`,
@@ -412,7 +412,7 @@ function prioritizeTemplates(styleSignals: StyleSignals, count: ProposalCount): 
   };
 
   if (styleSignals.tags.includes("dramatic")) add("black-editorial", "premium-monochrome", "experimental-contemporary");
-  if (styleSignals.tags.includes("classic")) add("concert-hall-classic", "minimal-recital", "premium-monochrome");
+  if (styleSignals.tags.includes("classic")) add("recital-photo-editorial", "concert-hall-classic", "minimal-recital", "premium-monochrome");
   if (styleSignals.tags.includes("romantic")) add("soft-romantic", "concert-hall-classic", "minimal-recital");
   if (styleSignals.tags.includes("modern")) add("modern-typography", "experimental-contemporary", "grid-portfolio");
   if (styleSignals.tags.includes("minimal")) add("minimal-recital", "grid-portfolio", "modern-typography");

@@ -229,7 +229,7 @@ function fallbackPerformerVisual(asset: GeneratedPerformerAsset): PerformerVisua
 }
 
 function photoSafeTemplatePreference(preferredTemplateIds: PosterTemplateId[] = []): PosterTemplateId[] {
-  const photoSafe: PosterTemplateId[] = ["concert-hall-classic", "premium-monochrome", "grid-portfolio"];
+  const photoSafe: PosterTemplateId[] = ["recital-photo-editorial", "concert-hall-classic", "premium-monochrome", "grid-portfolio"];
   return [
     ...photoSafe,
     ...preferredTemplateIds.filter((templateId) => !photoSafe.includes(templateId)),

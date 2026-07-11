@@ -2900,6 +2900,7 @@ function createDemoPosterProposals(input: {
   orchestrationRun: PosterGenerationRunRecord;
 } {
   const templates = [
+    ["recital-photo-editorial", "Recital Photo Editorial"],
     ["minimal-recital", "Minimal Recital"],
     ["black-editorial", "Black Editorial"],
     ["concert-hall-classic", "Concert Hall Classic"],
@@ -4044,6 +4045,7 @@ function projectSourceLabel(project: SavedProjectRecord) {
 
 function posterTemplateLabel(templateId: string) {
   const labels: Record<string, string> = {
+    "recital-photo-editorial": "리사이틀 포토",
     "minimal-recital": "미니멀 리사이틀",
     "black-editorial": "블랙 에디토리얼",
     "concert-hall-classic": "콘서트홀 클래식",

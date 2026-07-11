@@ -88,8 +88,8 @@ export function autoRepairPosterDesign(design: PosterDesign): { design: PosterDe
     return next;
   });
 
-  layers = moveQrLayersAwayFromImportantContent(layers, canvas.width, canvas.height, fixes);
-  layers = reduceTextPerformerOverlap(layers, canvas.width, canvas.height, fixes);
+  layers = moveQrLayersAwayFromImportantContent(layers, canvas.width, canvas.height, fixes, design.templateId);
+  layers = reduceTextPerformerOverlap(layers, canvas.width, canvas.height, fixes, design.templateId);
 
   return {
     design: {
@@ -157,7 +157,7 @@ export function analyzePosterProposalQuality(design: PosterDesign, checkedAt = n
     }
   }
 
-  addOverlapIssues(issues, boxes, visibleLayers);
+  addOverlapIssues(issues, boxes, visibleLayers, design.templateId);
 
   const score = Math.max(
     0,
@@ -177,8 +177,9 @@ export function analyzePosterProposalQuality(design: PosterDesign, checkedAt = n
   };
 }
 
-function addOverlapIssues(issues: PosterQualityIssue[], boxes: Box[], layers: PosterLayer[]) {
+function addOverlapIssues(issues: PosterQualityIssue[], boxes: Box[], layers: PosterLayer[], templateId: string) {
   const layerById = new Map(layers.map((layer) => [layer.id, layer]));
+  const allowPhotoEditorialOverlap = isPhotoEditorialTemplate(templateId);
   for (let index = 0; index < boxes.length; index += 1) {
     const first = boxes[index];
     if (!first) continue;
@@ -200,6 +201,7 @@ function addOverlapIssues(issues: PosterQualityIssue[], boxes: Box[], layers: Po
       const bothDecorative = !involvesText && !involvesQr;
 
       if (bothDecorative) continue;
+      if (allowPhotoEditorialOverlap && involvesPerformer && (involvesText || involvesQr)) continue;
       if (involvesText && involvesShape && !involvesQr && !involvesPerformer) continue;
       if (involvesQr && involvesShape && !involvesText && !involvesPerformer) continue;
       if (involvesQr && overlap > 0.02) {
@@ -256,11 +258,12 @@ function moveQrLayersAwayFromImportantContent(
   canvasWidth: number,
   canvasHeight: number,
   fixes: PosterQualityAutoFix[],
+  templateId: string,
 ) {
   return layers.map((layer) => {
     if (layer.type !== "qr" || layer.visible === false) return layer;
 
-    const currentOverlap = qrOverlapScore(layer, layers);
+    const currentOverlap = qrOverlapScore(layer, layers, templateId);
     const insideRatio = intersectionRatio(layerBox(layer), { id: "canvas", type: "shape", x: 0, y: 0, width: canvasWidth, height: canvasHeight }, "self");
     if (currentOverlap <= 0.02 && insideRatio >= 0.98) return layer;
 
@@ -271,7 +274,10 @@ function moveQrLayersAwayFromImportantContent(
       { x: canvasWidth - margin - layer.width, y: margin },
       { x: margin, y: margin },
     ].map((candidate) => ({ ...layer, ...candidate }));
-    const best = candidates.reduce((selected, candidate) => (qrOverlapScore(candidate, layers) < qrOverlapScore(selected, layers) ? candidate : selected), candidates[0] ?? layer);
+    const best = candidates.reduce(
+      (selected, candidate) => (qrOverlapScore(candidate, layers, templateId) < qrOverlapScore(selected, layers, templateId) ? candidate : selected),
+      candidates[0] ?? layer,
+    );
     if (best.x !== layer.x || best.y !== layer.y) {
       fixes.push(autoFix("qr", [layer.id], "QR이 잘리거나 겹치지 않도록 안전한 모서리로 이동했습니다."));
     }
@@ -279,11 +285,12 @@ function moveQrLayersAwayFromImportantContent(
   });
 }
 
-function qrOverlapScore(qrLayer: PosterQrLayer, layers: PosterLayer[]) {
+function qrOverlapScore(qrLayer: PosterQrLayer, layers: PosterLayer[], templateId?: string) {
+  const ignorePerformer = isPhotoEditorialTemplate(templateId);
   const qrBox = layerBox(qrLayer);
   return layers
     .filter((layer) => layer.id !== qrLayer.id && layer.visible !== false)
-    .filter((layer) => layer.type === "text" || layer.type === "qr" || (layer.type === "image" && layer.imageRole === "performer"))
+    .filter((layer) => layer.type === "text" || layer.type === "qr" || (!ignorePerformer && layer.type === "image" && layer.imageRole === "performer"))
     .reduce((score, layer) => score + intersectionRatio(qrBox, layerBox(layer), "smaller"), 0);
 }
 
@@ -292,7 +299,9 @@ function reduceTextPerformerOverlap(
   canvasWidth: number,
   canvasHeight: number,
   fixes: PosterQualityAutoFix[],
+  templateId: string,
 ) {
+  if (isPhotoEditorialTemplate(templateId)) return layers;
   const performerLayers = layers.filter((layer) => layer.type === "image" && layer.imageRole === "performer" && layer.visible !== false);
   if (!performerLayers.length) return layers;
 
@@ -321,6 +330,10 @@ function reduceTextPerformerOverlap(
     }
     return repaired;
   });
+}
+
+function isPhotoEditorialTemplate(templateId: string | undefined) {
+  return templateId === "recital-photo-editorial";
 }
 
 function intersectionRatio(first: Box, second: Box, mode: "self" | "smaller") {

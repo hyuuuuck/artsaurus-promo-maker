@@ -4,6 +4,7 @@ export const POSTER_CANVAS = {
 } as const;
 
 export const posterTemplateIds = [
+  "recital-photo-editorial",
   "minimal-recital",
   "black-editorial",
   "concert-hall-classic",
