@@ -1,8 +1,11 @@
+import path from "node:path";
 import sharp, { type OverlayOptions } from "sharp";
 import QRCode from "qrcode";
-import { posterExportFontStack } from "./fonts";
+import { normalizePosterFont } from "./fonts";
 import { POSTER_CANVAS, type PosterDesign, type PosterImageLayer, type PosterLayer, type PosterShapeLayer, type PosterTextLayer } from "./types";
 import { readImageUrlToBuffer, storePosterObject } from "./storage";
+
+const RUNTIME_FONT_ROOT = path.join(process.cwd(), "public", "runtime-fonts");
 
 type StoredPreviewInput = {
   userId: string;
@@ -105,13 +108,19 @@ async function renderLayer(layer: PosterLayer) {
     });
     if (!layer.caption) return qr;
     const captionHeight = 28;
-    const captionSvg = Buffer.from(`
-      <svg width="${layer.width}" height="${captionHeight}" xmlns="http://www.w3.org/2000/svg">
-        <text x="${layer.width / 2}" y="20" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" text-anchor="middle" fill="${escapeAttribute(
-          layer.foreground,
-        )}">${escapeText(layer.caption)}</text>
-      </svg>
-    `);
+    const caption = await renderTextBlock({
+      text: layer.caption,
+      width: Math.round(layer.width),
+      height: captionHeight,
+      fontFamily: "poster-nanum-gothic",
+      fontSize: 18,
+      fontWeight: 700,
+      fontStyle: "normal",
+      color: layer.foreground,
+      align: "center",
+      lineHeight: 1.1,
+      letterSpacing: 0,
+    });
     return sharp({
       create: {
         width: Math.round(layer.width),
@@ -122,7 +131,7 @@ async function renderLayer(layer: PosterLayer) {
     })
       .composite([
         { input: qr, left: 0, top: 0 },
-        { input: captionSvg, left: 0, top: Math.round(layer.height) },
+        { input: caption, left: 0, top: Math.round(layer.height) },
       ])
       .png()
       .toBuffer();
@@ -132,7 +141,7 @@ async function renderLayer(layer: PosterLayer) {
     return Buffer.from(shapeSvg(layer));
   }
 
-  return Buffer.from(textSvg(layer));
+  return renderTextLayer(layer);
 }
 
 async function applyImageAdjustments(body: Buffer, width: number, height: number, layer: PosterImageLayer) {
@@ -307,30 +316,109 @@ function shapeSvg(layer: PosterShapeLayer) {
   }" ${fill} ${stroke}/></svg>`;
 }
 
-function textSvg(layer: PosterTextLayer) {
-  const lines = wrapText(layer.text, layer.fontSize, layer.width);
-  const anchor = layer.align === "center" ? "middle" : layer.align === "right" ? "end" : "start";
-  const x = layer.align === "center" ? layer.width / 2 : layer.align === "right" ? layer.width : 0;
-  const lineHeight = layer.fontSize * layer.lineHeight;
-  const tspans = lines
-    .map((line, index) => {
-      const dy = index === 0 ? layer.fontSize : lineHeight;
-      return `<tspan x="${x}" dy="${dy}">${escapeText(line)}</tspan>`;
-    })
-    .join("");
+function renderTextLayer(layer: PosterTextLayer) {
+  return renderTextBlock({
+    text: layer.text,
+    width: Math.round(layer.width),
+    height: Math.round(layer.height),
+    fontFamily: layer.fontFamily,
+    fontSize: layer.fontSize,
+    fontWeight: layer.fontWeight,
+    fontStyle: layer.fontStyle ?? "normal",
+    underline: layer.underline,
+    color: layer.color,
+    align: layer.align,
+    lineHeight: layer.lineHeight,
+    letterSpacing: layer.letterSpacing ?? 0,
+  });
+}
 
-  return `
-    <svg width="${Math.max(1, Math.round(layer.width))}" height="${Math.max(1, Math.round(layer.height))}" xmlns="http://www.w3.org/2000/svg">
-      <text x="${x}" y="0"
-        font-family="${escapeAttribute(posterExportFontStack(layer.fontFamily))}"
-        font-size="${layer.fontSize}"
-        font-weight="${layer.fontWeight}"
-        font-style="${layer.fontStyle ?? "normal"}"
-        fill="${escapeAttribute(layer.color)}"
-        text-anchor="${anchor}"
-        letter-spacing="${layer.letterSpacing ?? 0}">${tspans}</text>
-    </svg>
-  `;
+async function renderTextBlock(input: {
+  text: string;
+  width: number;
+  height: number;
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: number;
+  fontStyle?: "normal" | "italic";
+  underline?: boolean;
+  color: string;
+  align: "left" | "center" | "right";
+  lineHeight: number;
+  letterSpacing?: number;
+}) {
+  const width = Math.max(1, input.width);
+  const height = Math.max(1, input.height);
+  const lines = wrapText(input.text, input.fontSize, width);
+  const lineHeight = Math.max(input.fontSize * input.lineHeight, input.fontSize * 0.92);
+  const font = renderFontFor(input.fontFamily, input.fontWeight);
+  const composites: OverlayOptions[] = [];
+
+  for (const [index, line] of lines.entries()) {
+    const top = Math.round(index * lineHeight);
+    if (top >= height) break;
+    const textImage = await sharp({
+      text: {
+        text: pangoTextMarkup(line || " ", input.color, input.fontStyle),
+        font: `${font.family} ${Math.max(1, Math.round(input.fontSize))}px`,
+        fontfile: font.filePath,
+        rgba: true,
+      },
+    })
+      .png()
+      .toBuffer();
+    const metadata = await sharp(textImage).metadata();
+    const textWidth = metadata.width ?? 0;
+    const textHeight = metadata.height ?? 0;
+    const left = input.align === "center" ? Math.round((width - textWidth) / 2) : input.align === "right" ? Math.round(width - textWidth) : 0;
+    composites.push({ input: textImage, left: Math.max(0, left), top });
+
+    if (input.underline && textWidth > 0) {
+      const ruleTop = Math.min(height - 1, top + Math.round(textHeight * 0.86));
+      composites.push({
+        input: Buffer.from(ruleSvg(Math.max(1, textWidth), Math.max(1, Math.round(input.fontSize / 16)), input.color)),
+        left: Math.max(0, left),
+        top: ruleTop,
+      });
+    }
+  }
+
+  return sharp({
+    create: {
+      width,
+      height,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite(composites)
+    .png()
+    .toBuffer();
+}
+
+function renderFontFor(value: string | undefined, weight: number) {
+  const normalized = normalizePosterFont(value);
+  const serif = normalized.includes("myeongjo") || normalized.includes("batang") || normalized.includes("serif");
+  const bold = weight >= 700;
+  return {
+    family: serif ? "NanumMyeongjo" : "NanumGothic",
+    filePath: path.join(RUNTIME_FONT_ROOT, serif ? (bold ? "NanumMyeongjoBold.ttf" : "NanumMyeongjo.ttf") : bold ? "NanumGothicBold.ttf" : "NanumGothic.ttf"),
+  };
+}
+
+function pangoTextMarkup(text: string, color: string, fontStyle?: "normal" | "italic") {
+  const style = fontStyle === "italic" ? ' font_style="italic"' : "";
+  return `<span foreground="${escapeAttribute(pangoColor(color))}"${style}>${escapeText(text)}</span>`;
+}
+
+function pangoColor(value: string) {
+  return /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(value) ? value : "#111111";
+}
+
+function ruleSvg(width: number, height: number, color: string) {
+  return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect width="${width}" height="${height}" fill="${escapeAttribute(
+    pangoColor(color),
+  )}"/></svg>`;
 }
 
 function wrapText(value: string, fontSize: number, width: number) {
