@@ -9,10 +9,8 @@ import {
   ExternalLink,
   FileText,
   History,
-  ImageIcon,
   Loader2,
   MousePointer2,
-  Palette,
   Plus,
   QrCode,
   RefreshCw,
@@ -27,6 +25,8 @@ import { GuidedFlowPanel, type GuidedFlowStage } from "./guided-flow-panel";
 import type { PosterGenerationPlanRecord, PosterGenerationRunRecord } from "./ai-poster-studio-types";
 import { PosterUploadButton } from "./poster-upload-button";
 import { PosterSetupPanel } from "./poster-setup-panel";
+import { PosterImportPanel } from "./poster-import-panel";
+import { posterCanvasPresets, type PosterCanvasPresetValue } from "./poster-import-settings";
 import { posterPromptPresets, type PosterPromptPreset } from "./poster-prompt-presets";
 import { QrPurposePanel } from "./qr-purpose-panel";
 import { ReferencePhotoStep } from "./reference-photo-step";
@@ -259,22 +259,6 @@ type RegionDragState = {
   width: number;
   height: number;
 };
-
-type PosterImportSettings = {
-  preset: PosterCanvasPresetValue;
-  customWidth: number;
-  customHeight: number;
-  fit: PosterImageLayer["objectFit"];
-};
-
-const posterCanvasPresets = [
-  { value: "performance", label: "공연 포스터", width: POSTER_CANVAS.width, height: POSTER_CANVAS.height },
-  { value: "a4-portrait", label: "A4 세로", width: 1240, height: 1754 },
-  { value: "a4-landscape", label: "A4 가로", width: 1754, height: 1240 },
-  { value: "square", label: "정사각형", width: 1080, height: 1080 },
-  { value: "custom", label: "직접 입력", width: POSTER_CANVAS.width, height: POSTER_CANVAS.height },
-] as const;
-type PosterCanvasPresetValue = (typeof posterCanvasPresets)[number]["value"];
 
 const styleOptions = [
   { value: "clean", label: "깔끔" },
@@ -1657,18 +1641,12 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
           }
         />
 
-        <div className="ai-poster-panel ai-poster-import-panel">
-          <div className="ai-poster-panel-head">
-            <Palette size={18} />
-            <h2>포스터 가져오기</h2>
-          </div>
-          <PosterImportControls
-            busy={busy}
-            settings={posterImportSettings}
-            onSettingsChange={setPosterImportSettings}
-            onFile={handleImportPosterFile}
-          />
-        </div>
+        <PosterImportPanel
+          busy={busy}
+          settings={posterImportSettings}
+          onSettingsChange={setPosterImportSettings}
+          onFile={handleImportPosterFile}
+        />
 
         <ReferencePhotoStep
           busy={busy}
@@ -2195,83 +2173,6 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
         </div>
       </section>
     </div>
-  );
-}
-
-function PosterImportControls({
-  busy,
-  settings,
-  onSettingsChange,
-  onFile,
-}: {
-  busy: string | null;
-  settings: PosterImportSettings;
-  onSettingsChange: React.Dispatch<React.SetStateAction<PosterImportSettings>>;
-  onFile: (file: File | null) => void | Promise<void>;
-}) {
-  return (
-    <>
-      <div className="ai-field">
-        <span>시작 캔버스</span>
-        <div className="segmented-control compact">
-          {posterCanvasPresets.map((preset) => (
-            <button
-              key={preset.value}
-              type="button"
-              className={settings.preset === preset.value ? "active" : ""}
-              onClick={() =>
-                onSettingsChange((current) => ({
-                  ...current,
-                  preset: preset.value,
-                  customWidth: preset.value === "custom" ? current.customWidth : preset.width,
-                  customHeight: preset.value === "custom" ? current.customHeight : preset.height,
-                }))
-              }
-            >
-              {preset.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      {settings.preset === "custom" ? (
-        <div className="ai-field-grid">
-          <NumberField
-            label="가로 px"
-            value={settings.customWidth}
-            onChange={(value) => onSettingsChange((current) => ({ ...current, customWidth: clampBoxValue(value, 240, 3200) }))}
-          />
-          <NumberField
-            label="세로 px"
-            value={settings.customHeight}
-            onChange={(value) => onSettingsChange((current) => ({ ...current, customHeight: clampBoxValue(value, 240, 3200) }))}
-          />
-        </div>
-      ) : null}
-      <div className="ai-field">
-        <span>포스터 배치</span>
-        <div className="segmented-control compact">
-          {(["contain", "cover"] as const).map((fit) => (
-            <button key={fit} type="button" className={settings.fit === fit ? "active" : ""} onClick={() => onSettingsChange((current) => ({ ...current, fit }))}>
-              {fit === "contain" ? "전체 보이기" : "꽉 채우기"}
-            </button>
-          ))}
-        </div>
-      </div>
-      <label className="ai-upload-box ai-poster-import-box">
-        {busy === "poster-import" ? <Loader2 className="spin-icon" size={28} /> : <ImageIcon size={30} />}
-        <strong>기존 포스터 업로드</strong>
-        <span>포스터는 잠그고, 텍스트/QR/도형을 위에 추가해서 편집</span>
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          disabled={Boolean(busy)}
-          onChange={(event) => {
-            void onFile(event.target.files?.[0] ?? null);
-            event.currentTarget.value = "";
-          }}
-        />
-      </label>
-    </>
   );
 }
 
