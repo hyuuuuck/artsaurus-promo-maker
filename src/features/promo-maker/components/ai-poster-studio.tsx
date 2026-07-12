@@ -28,6 +28,7 @@ import type { PosterGenerationPlanRecord, PosterGenerationRunRecord } from "./ai
 import { PosterUploadButton } from "./poster-upload-button";
 import { PosterSetupPanel } from "./poster-setup-panel";
 import { posterPromptPresets, type PosterPromptPreset } from "./poster-prompt-presets";
+import { ReferencePhotoStep } from "./reference-photo-step";
 import { StartModePanel } from "./start-mode-panel";
 import { normalizePosterFont, posterBrowserFontStack, posterFontOptions } from "../poster/fonts";
 import {
@@ -1675,59 +1676,27 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
           />
         </div>
 
-        <div className="ai-poster-panel">
-          <div className="ai-poster-panel-head">
-            <ImageIcon size={18} />
-            <h2>연주자 사진</h2>
-          </div>
-          <div className="ai-reference-grid">
-            {referencePoseOptions.map((pose) => {
-              const preview = referencePreview(pose.value);
-              const file = referenceFiles[pose.value];
-              const uploaded = referenceImages[pose.value];
-              return (
-                <label key={pose.value} className="ai-upload-box ai-reference-upload">
-                  <strong>{pose.label}</strong>
-                  {preview ? <img src={preview} alt="" /> : <ImageIcon size={28} />}
-                  <span>{uploaded ? `업로드 완료 · ${file?.name ?? pose.fallbackLabel}` : file ? `업로드 중 · ${file.name}` : pose.fallbackLabel}</span>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={(event) => handleReferenceFileChange(pose.value, event.target.files?.[0] ?? null)}
-                  />
-                </label>
-              );
-            })}
-          </div>
-          <div className="ai-consent-box">
-            <label className="ai-checkbox-field">
-              <input type="checkbox" checked={personImageConsent} onChange={(event) => setPersonImageConsent(event.target.checked)} />
-              <span>이 사진은 본인 또는 사용 권한이 있는 인물의 사진이며, 공연 포스터 제작용 AI 편집에 동의합니다.</span>
-            </label>
-            <label className="ai-checkbox-field">
-              <input type="checkbox" checked={assetUsageRightsConfirmed} onChange={(event) => setAssetUsageRightsConfirmed(event.target.checked)} />
-              <span>이 이미지를 공연 포스터 제작에 사용할 권한이 있습니다.</span>
-            </label>
-          </div>
-          <label className="ai-field">
-            <span>악기/파트</span>
-            <input
-              value={generationOptions.instrument}
-              onChange={(event) => updateGenerationOptions({ instrument: event.target.value })}
-              placeholder="예: 피아노, 첼로, 성악"
-            />
-          </label>
-          <div className="ai-guided-cta-card">
-            <strong>전체 시안 준비</strong>
-            <span>사진을 프로필 후보로 정리한 뒤, 가장 닮은 후보를 고르면 포스터 시안으로 이어집니다.</span>
-            <Button type="button" onClick={handlePrepareGuidedPosterBatch} disabled={assetGenerationDisabled}>
-              {busy === "guided-flow" || busy === "profile-variants" || busy === "proposals" ? <Loader2 className="spin-icon" size={16} /> : <Sparkles size={16} />}
-              전체 시안 준비
-            </Button>
-          </div>
-          <details className="ai-advanced-panel">
-            <summary>고급 설정 / 재시도</summary>
-            <div className="ai-advanced-panel-body">
+        <ReferencePhotoStep
+          busy={busy}
+          referenceSlots={referencePoseOptions.map((pose) => ({
+            value: pose.value,
+            label: pose.label,
+            fallbackLabel: pose.fallbackLabel,
+            preview: referencePreview(pose.value) || "",
+            fileName: referenceFiles[pose.value]?.name,
+            uploaded: Boolean(referenceImages[pose.value]),
+          }))}
+          personImageConsent={personImageConsent}
+          usageRightsConfirmed={assetUsageRightsConfirmed}
+          instrument={generationOptions.instrument}
+          assetGenerationDisabled={assetGenerationDisabled}
+          onReferenceFileChange={handleReferenceFileChange}
+          onPersonImageConsentChange={setPersonImageConsent}
+          onUsageRightsConfirmedChange={setAssetUsageRightsConfirmed}
+          onInstrumentChange={(value) => updateGenerationOptions({ instrument: value })}
+          onPrepareGuidedPosterBatch={handlePrepareGuidedPosterBatch}
+          advancedContent={
+            <>
               {pipelineStatus ? (
                 <div className={generationIsLive ? "ai-pipeline-status is-live" : "ai-pipeline-status is-mock"}>
                   <strong>{pipelineStatusTitle(generationOptions.identityMode, pipelineStatus, generationIsLive, uploadedPhotoLivePolish, baselineReadyForPose)}</strong>
@@ -1880,9 +1849,9 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
                   {assetActionLabel(generationOptions.identityMode, generationIsLive)}
                 </Button>
               </div>
-            </div>
-          </details>
-        </div>
+            </>
+          }
+        />
 
         <div className="ai-poster-panel">
           <div className="ai-poster-panel-head">
