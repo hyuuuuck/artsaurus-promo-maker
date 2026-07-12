@@ -569,6 +569,8 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
   );
   const currentAssetCanGenerateProposals = Boolean(performerAsset && performerAssetApproved && !selectedAssetNeedsProfileCandidate && !needsMoreProfileCandidatesForProposals);
   const guidedFlowStage = project || design ? "edit" : proposals.length ? "poster" : performerAssetApproved ? "proposal" : performerAsset ? "profile" : "input";
+  const shouldShowProfileVariantControls =
+    guidedFlowStage === "profile" || needsMoreProfileCandidatesForProposals || busy === "profile-variants";
 
   useEffect(() => {
     const node = stageShellRef.current;
@@ -2099,33 +2101,35 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
                   </>
                 )}
               </div>
-              <div className="ai-profile-variant-actions">
-                <strong>프로필 후보 수</strong>
-                <div className="segmented-control proposal-count-control" role="group" aria-label="프로필 후보 수 선택">
-                  {profileVariantCountOptions.map((count) => (
-                    <button
-                      key={count}
-                      type="button"
-                      className={profileVariantCount === count ? "active" : ""}
-                      onClick={() => setProfileVariantCount(count)}
-                      disabled={Boolean(busy)}
-                    >
-                      {count}개
-                    </button>
-                  ))}
+              {shouldShowProfileVariantControls ? (
+                <div className="ai-profile-variant-actions">
+                  <strong>프로필 후보 생성 슬롯</strong>
+                  <div className="segmented-control proposal-count-control" role="group" aria-label="프로필 후보 수 선택">
+                    {profileVariantCountOptions.map((count) => (
+                      <button
+                        key={count}
+                        type="button"
+                        className={profileVariantCount === count ? "active" : ""}
+                        onClick={() => setProfileVariantCount(count)}
+                        disabled={Boolean(busy)}
+                      >
+                        {count}개
+                      </button>
+                    ))}
+                  </div>
+                  <div className="ai-template-slot-list" aria-label="생성될 프로필 후보 템플릿">
+                    {selectedProfileVariantTemplates.map((template, index) => (
+                      <span key={template.label}>
+                        {index + 1}. {template.label}
+                      </span>
+                    ))}
+                  </div>
+                  <Button type="button" variant="secondary" onClick={() => handleGenerateProfileVariants()} disabled={Boolean(busy) || !hasTransparentCutout}>
+                    {busy === "profile-variants" ? <Loader2 className="spin-icon" size={16} /> : <Sparkles size={16} />}
+                    프로필 후보 다시 만들기
+                  </Button>
                 </div>
-                <div className="ai-template-slot-list" aria-label="생성될 프로필 후보 템플릿">
-                  {selectedProfileVariantTemplates.map((template, index) => (
-                    <span key={template.label}>
-                      {index + 1}. {template.label}
-                    </span>
-                  ))}
-                </div>
-                <Button type="button" variant="secondary" onClick={() => handleGenerateProfileVariants()} disabled={Boolean(busy) || !hasTransparentCutout}>
-                  {busy === "profile-variants" ? <Loader2 className="spin-icon" size={16} /> : <Sparkles size={16} />}
-                  프로필 후보 다시 만들기
-                </Button>
-              </div>
+              ) : null}
               {selectedAssetNeedsProfileCandidate ? (
                 <p className="ai-pipeline-note is-blocked">포스터 시안 전 프로필 후보 선택 필요</p>
               ) : (
