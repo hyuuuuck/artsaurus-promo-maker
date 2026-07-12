@@ -8,7 +8,6 @@ import {
   Download,
   History,
   Loader2,
-  MousePointer2,
   Plus,
   QrCode,
   RefreshCw,
@@ -21,9 +20,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { AssetPreviewSection } from "./asset-preview-section";
 import { EditorHeader } from "./editor-header";
+import { EditorStage } from "./editor-stage";
 import { GuidedFlowPanel, type GuidedFlowStage } from "./guided-flow-panel";
 import type { PosterGenerationPlanRecord, PosterGenerationRunRecord } from "./ai-poster-studio-types";
-import { PosterUploadButton } from "./poster-upload-button";
 import { PosterSetupPanel } from "./poster-setup-panel";
 import { PosterImportPanel } from "./poster-import-panel";
 import { posterCanvasPresets, type PosterCanvasPresetValue } from "./poster-import-settings";
@@ -1872,60 +1871,29 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
           busy={busy}
         />
         <div className="ai-customizer-grid">
-          <div className="ai-stage-shell" ref={stageShellRef}>
-            {design ? (
-              <div
-                className="ai-stage-viewport"
-                style={{
-                  width: design.canvas.width * scale,
-                  height: design.canvas.height * scale,
-                }}
-                onWheel={handleWheel}
-                onPointerMove={handleCanvasPointerMove}
-                onPointerUp={() => {
-                  setDrag(null);
-                  setRegionDrag(null);
-                }}
-                onPointerCancel={() => {
-                  setDrag(null);
-                  setRegionDrag(null);
-                }}
-              >
-                <div className="ai-canvas-size-chip">
-                  {design.canvas.width} x {design.canvas.height}px
-                </div>
-                <div
-                  className="ai-stage"
-                  style={{
-                    width: design.canvas.width,
-                    height: design.canvas.height,
-                    transform: `scale(${scale})`,
-                    background: design.canvas.backgroundColor,
-                  }}
-                  onPointerDown={() => setSelectedLayerId(null)}
-                >
-                  {design.layers.map((layer) => (
-                    <PosterLayerView
-                      key={layer.id}
-                      layer={layer}
-                      selected={selectedLayerId === layer.id}
-                      onPointerDown={(event) => handleLayerPointerDown(event, layer)}
-                      onRegionPointerDown={handleRegionPointerDown}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="ai-stage-empty">
-                <MousePointer2 size={30} />
-                <strong>포스터를 업로드하거나 포스터 시안을 선택하세요</strong>
-                <span>업로드한 포스터는 간단 편집에서 색감 조정, OCR 텍스트 변환, 레이어 수정을 이어갈 수 있습니다.</span>
-                <PosterUploadButton busy={busy} onFile={handleImportPosterFile}>
-                  업로드 포스터 열기
-                </PosterUploadButton>
-              </div>
+          <EditorStage
+            design={design}
+            scale={scale}
+            busy={busy}
+            stageShellRef={stageShellRef}
+            onWheel={handleWheel}
+            onPointerMove={handleCanvasPointerMove}
+            onPointerEnd={() => {
+              setDrag(null);
+              setRegionDrag(null);
+            }}
+            onClearSelection={() => setSelectedLayerId(null)}
+            onImportPoster={handleImportPosterFile}
+            renderLayer={(layer) => (
+              <PosterLayerView
+                key={layer.id}
+                layer={layer}
+                selected={selectedLayerId === layer.id}
+                onPointerDown={(event) => handleLayerPointerDown(event, layer)}
+                onRegionPointerDown={handleRegionPointerDown}
+              />
             )}
-          </div>
+          />
 
           <aside className="ai-inspector">
             <div className="ai-action-row">
