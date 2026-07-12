@@ -7,7 +7,6 @@ import QRCode from "qrcode";
 import {
   Download,
   ExternalLink,
-  FileText,
   History,
   Loader2,
   MousePointer2,
@@ -33,6 +32,7 @@ import type { ProfileVariantFailureRecord } from "./profile-variant-panel";
 import { ProposalSection, type ProposalQualityReportRecord } from "./proposal-section";
 import { QrPurposePanel } from "./qr-purpose-panel";
 import { ReferencePhotoStep } from "./reference-photo-step";
+import { SavedProjectShelf } from "./saved-project-shelf";
 import { StartModePanel } from "./start-mode-panel";
 import { buildWorkProgress, WorkProgress } from "./work-progress";
 import { normalizePosterFont, posterBrowserFontStack, posterFontOptions } from "../poster/fonts";
@@ -3241,73 +3241,6 @@ function GenerationRunHistory({
   );
 }
 
-function SavedProjectShelf({
-  projects,
-  loading,
-  activeProjectId,
-  busy,
-  onRefresh,
-  onOpen,
-}: {
-  projects: SavedProjectRecord[];
-  loading: boolean;
-  activeProjectId?: string;
-  busy: string | null;
-  onRefresh: () => void;
-  onOpen: (projectId: string) => void;
-}) {
-  return (
-    <div className="ai-saved-projects">
-      <div className="ai-saved-projects-head">
-        <strong>
-          <History size={16} />
-          최근 저장 작업
-        </strong>
-        <span>{projects.length ? `${projects.length}개 중 최근 6개` : "저장된 작업 없음"}</span>
-        <button type="button" onClick={onRefresh} disabled={loading || Boolean(busy)} aria-label="저장 작업 새로고침">
-          {loading ? <Loader2 className="spin-icon" size={14} /> : <RefreshCw size={14} />}
-        </button>
-      </div>
-      {projects.length ? (
-        <div className="ai-saved-project-list">
-          {projects.slice(0, 6).map((item) => (
-            <article key={item.id} className={activeProjectId === item.id ? "ai-saved-project active" : "ai-saved-project"}>
-              <button type="button" className="ai-saved-project-preview" onClick={() => onOpen(item.id)} disabled={Boolean(busy)} aria-label={`${item.title} 열기`}>
-                {item.thumbnailUrl ? (
-                  <img src={item.thumbnailUrl} alt="" />
-                ) : (
-                  <FileText size={22} />
-                )}
-                <span>{item.sourceKind === "ai_proposal" ? "AI" : "업로드"}</span>
-              </button>
-              <div className="ai-saved-project-body">
-                <strong>{shortProjectTitle(item.title)}</strong>
-                <p>{item.sourceTitle && item.sourceTitle !== item.title ? item.sourceTitle : projectSourceLabel(item)}</p>
-                <span>{[formatRunTime(item.updatedAt ?? item.createdAt ?? "") || "저장됨", projectSourceLabel(item)].filter(Boolean).join(" · ")}</span>
-                <div className="ai-saved-project-actions">
-                  {item.exportUrl ? (
-                    <a href={item.exportUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
-                      PNG 보기
-                    </a>
-                  ) : (
-                    <em>PNG 없음</em>
-                  )}
-                  <button type="button" onClick={() => onOpen(item.id)} disabled={Boolean(busy)}>
-                    {busy === `project-${item.id}` ? <Loader2 className="spin-icon" size={14} /> : <MousePointer2 size={14} />}
-                    편집 계속
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <p className="ai-generation-history-empty">아직 저장된 편집 작업이 없습니다. 포스터 시안을 열거나 업로드 포스터를 저장하면 여기에 나타납니다.</p>
-      )}
-    </div>
-  );
-}
-
 function NumberField({ label, value, disabled = false, onChange }: { label: string; value: number; disabled?: boolean; onChange: (value: number) => void }) {
   return (
     <label className="ai-field">
@@ -3376,32 +3309,6 @@ function runStatusLabel(status: string) {
   if (status === "running") return "생성 중";
   if (status === "planning") return "계획 중";
   return status;
-}
-
-function shortProjectTitle(title: string) {
-  return title.replace(/\s+업로드 포스터$/u, " · 업로드").replace(/\s+포스터$/u, " · 포스터");
-}
-
-function projectSourceLabel(project: SavedProjectRecord) {
-  if (project.sourceKind === "ai_proposal") {
-    return project.sourceTemplateId ? `AI 시안 · ${posterTemplateLabel(project.sourceTemplateId)}` : "AI 시안";
-  }
-  return "업로드 포스터";
-}
-
-function posterTemplateLabel(templateId: string) {
-  const labels: Record<string, string> = {
-    "recital-photo-editorial": "리사이틀 포토",
-    "minimal-recital": "미니멀 리사이틀",
-    "black-editorial": "블랙 에디토리얼",
-    "concert-hall-classic": "콘서트홀 클래식",
-    "modern-typography": "모던 타이포",
-    "soft-romantic": "소프트 로맨틱",
-    "experimental-contemporary": "컨템포러리",
-    "premium-monochrome": "프리미엄 모노",
-    "grid-portfolio": "그리드 포트폴리오",
-  };
-  return labels[templateId] ?? templateId;
 }
 
 function formatRunTime(value: string) {
