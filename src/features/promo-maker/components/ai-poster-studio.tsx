@@ -24,6 +24,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GuidedFlowPanel, type GuidedFlowStage } from "./guided-flow-panel";
+import type { PosterGenerationPlanRecord, PosterGenerationRunRecord } from "./ai-poster-studio-types";
+import { PosterUploadButton } from "./poster-upload-button";
+import { PosterSetupPanel } from "./poster-setup-panel";
+import { posterPromptPresets, type PosterPromptPreset } from "./poster-prompt-presets";
+import { StartModePanel } from "./start-mode-panel";
 import { normalizePosterFont, posterBrowserFontStack, posterFontOptions } from "../poster/fonts";
 import {
   POSTER_CANVAS,
@@ -170,39 +175,6 @@ type ProposalQualityReportRecord = {
   }>;
 };
 
-type PosterGenerationPlanRecord = {
-  summary: string;
-  warnings?: string[];
-  layoutJob?: {
-    templateIds?: string[];
-  };
-  performerAssetJob?: {
-    posePolicy?: string;
-  };
-  backgroundJob?: {
-    mode?: string;
-  };
-};
-
-type PosterGenerationRunRecord = {
-  id: string;
-  status: string;
-  plannerProvider: string;
-  fallbackReason?: string;
-  orchestrationPrompt?: string;
-  proposalCount: number;
-  proposalsCreated?: number;
-  createdAt: string;
-  completedAt?: string;
-  errorMessage?: string;
-  planSummary?: string;
-  templateIds?: string[];
-  posePolicy?: string;
-  backgroundMode?: string;
-  layoutDensity?: string;
-  warnings?: string[];
-};
-
 type PosterProposalGenerateResponse = {
   proposals: ProposalRecord[];
   orchestrationPlan?: PosterGenerationPlanRecord;
@@ -329,33 +301,6 @@ const wardrobeOptions = [
 const profileVariantCountOptions = [5] as const;
 type ProposalCount = number;
 type ProfileVariantCount = (typeof profileVariantCountOptions)[number];
-
-const posterPromptPresets = [
-  {
-    id: "quiet-recital",
-    label: "차분한 리사이틀",
-    description: "여백, 낮은 채도, 공연 정보 가독성 중심",
-    value: "얼굴과 승인된 프로필 후보는 유지하고, 여백이 많은 차분한 클래식 리사이틀 포스터. 따뜻한 아이보리와 먹색 중심, 제목은 크게 읽히게.",
-  },
-  {
-    id: "stage-light",
-    label: "무대 조명",
-    description: "콘서트홀 조명과 깊은 명암 중심",
-    value: "얼굴은 바꾸지 말고, 콘서트홀 무대 조명과 깊은 명암을 사용한 고급 포스터. 검정, 금색, 짙은 블루 계열. 예매 QR은 잘 보이게.",
-  },
-  {
-    id: "modern-type",
-    label: "현대 타이포",
-    description: "강한 제목 대비와 기하학적 구성",
-    value: "승인된 연주자 이미지는 고정하고, 현대적인 타이포그래피 중심의 포스터. 강한 제목 대비, 기하학적 도형, 깔끔한 정보 정리.",
-  },
-  {
-    id: "warm-recital",
-    label: "따뜻한 감성",
-    description: "부드러운 조명과 감성적인 독주회 톤",
-    value: "연주자 얼굴과 포즈는 유지하고, 부드러운 조명과 따뜻한 색감의 감성적인 리사이틀 포스터. 너무 귀엽거나 스티커사진 느낌은 피하기.",
-  },
-] as const;
 
 const profileVariantDirections = [
   {
@@ -1636,7 +1581,7 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
     setProposals([]);
   }
 
-  function applyPosterPromptPreset(preset: (typeof posterPromptPresets)[number]) {
+  function applyPosterPromptPreset(preset: PosterPromptPreset) {
     setPosterBriefTemplateId(preset.id);
     setOrchestrationPrompt(preset.value);
   }
@@ -1653,150 +1598,69 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
   return (
     <div className="ai-poster-studio">
       {workProgress ? <WorkProgress progress={workProgress} /> : null}
-      <section className="ai-start-panel">
-        <div>
-          <p className="section-eyebrow">POSTER START</p>
-          <h2>시작 방식 선택</h2>
-          <span>갖고 있는 포스터를 바로 열거나, 연주자 사진으로 새 포스터 시안을 만들 수 있습니다.</span>
-        </div>
-        <div className="ai-start-actions">
-          <PosterUploadButton busy={busy} primary onFile={handleImportPosterFile}>
-            기존 포스터 업로드
-          </PosterUploadButton>
-          <Button type="button" variant="secondary" onClick={() => document.getElementById("poster-ai-setup")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
-            <Sparkles size={16} />
-            AI 포스터 시안 만들기
-          </Button>
-        </div>
-      </section>
+      <StartModePanel
+        busy={busy}
+        onImportPoster={handleImportPosterFile}
+        onStartAiPoster={() => document.getElementById("poster-ai-setup")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+      />
 
       <GuidedFlowPanel stage={guidedFlowStage} />
 
       <section className="ai-poster-setup" id="poster-ai-setup">
-        <div className="ai-poster-panel">
-          <div className="ai-poster-panel-head">
-            <Sparkles size={18} />
-            <h2>포스터 시안 만들기</h2>
-          </div>
-          <label className="ai-field">
-            <span>공연 제목</span>
-            <input value={concertInfo.title} onChange={(event) => setConcertInfo({ ...concertInfo, title: event.target.value })} />
-          </label>
-          <label className="ai-field">
-            <span>연주자</span>
-            <input value={concertInfo.performerName} onChange={(event) => setConcertInfo({ ...concertInfo, performerName: event.target.value })} />
-          </label>
-          <label className="ai-field">
-            <span>프로그램/부제</span>
-            <textarea value={concertInfo.program || concertInfo.subtitle} onChange={(event) => setConcertInfo({ ...concertInfo, program: event.target.value })} />
-          </label>
-          <div className="ai-field-grid">
-            <label className="ai-field">
-              <span>일시</span>
-              <input value={concertInfo.dateText} onChange={(event) => setConcertInfo({ ...concertInfo, dateText: event.target.value })} />
-            </label>
-            <label className="ai-field">
-              <span>장소</span>
-              <input value={concertInfo.venueName} onChange={(event) => setConcertInfo({ ...concertInfo, venueName: event.target.value })} />
-            </label>
-          </div>
-          <div className="ai-field ai-prompt-field">
-            <span>포스터 방향 템플릿</span>
-            <div className="ai-prompt-presets is-template-grid">
-              {posterPromptPresets.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className={posterBriefTemplateId === preset.id ? "active" : ""}
-                  onClick={() => applyPosterPromptPreset(preset)}
-                >
-                  <strong>{preset.label}</strong>
-                  <small>{preset.description}</small>
-                </button>
-              ))}
-            </div>
-            <div className="ai-prompt-status">
-              <span>선택한 템플릿 기준으로 포스터 시안을 만듭니다.</span>
-            </div>
-          </div>
-          <div className="ai-generation-inline">
-            <div className="ai-field">
-              <span>포스터 시안 수</span>
-              <input
-                type="number"
-                min={POSTER_PROPOSAL_COUNT_MIN}
-                max={POSTER_PROPOSAL_COUNT_MAX}
-                step={1}
-                value={proposalCount}
-                onChange={(event) => setProposalCount(normalizeProposalCount(event.target.value))}
-                disabled={Boolean(busy)}
+        <PosterSetupPanel
+          concertInfo={concertInfo}
+          posterBriefTemplateId={posterBriefTemplateId}
+          proposalCount={proposalCount}
+          busy={busy}
+          hasTransparentCutout={hasTransparentCutout}
+          needsMoreProfileCandidates={needsMoreProfileCandidatesForProposals}
+          savedPosterCandidateCount={savedPosterCandidateCount}
+          performerAssetState={{
+            exists: Boolean(performerAsset),
+            approved: performerAssetApproved,
+            needsProfileCandidate: selectedAssetNeedsProfileCandidate,
+          }}
+          message={message}
+          onConcertInfoChange={(patch) => setConcertInfo((current) => ({ ...current, ...patch }))}
+          onApplyPreset={applyPosterPromptPreset}
+          onProposalCountChange={(value) => setProposalCount(normalizeProposalCount(value))}
+          onGenerateProfileVariants={() => handleGenerateProfileVariants()}
+          onGenerateProposals={() => handleGenerateProposals()}
+          operatorContent={
+            <>
+              {pipelineStatus?.proposalVariants ? (
+                <p className={pipelineStatus.proposalVariants.ready ? "ai-pipeline-note is-ready" : "ai-pipeline-note is-blocked"}>
+                  {proposalVariantStatusLabel(pipelineStatus.proposalVariants, proposalCount)}
+                </p>
+              ) : null}
+              {orchestrationPlan ? (
+                <div className="ai-orchestration-plan">
+                  <strong>생성 계획</strong>
+                  <span>{orchestrationPlan.summary}</span>
+                  {orchestrationRun ? (
+                    <em>
+                      실행: {orchestrationRun.plannerProvider} / {orchestrationRun.proposalsCreated ?? proposals.length}개
+                    </em>
+                  ) : null}
+                  {orchestrationRun?.fallbackReason ? <em>planner fallback: {orchestrationRun.fallbackReason}</em> : null}
+                  {orchestrationPlan.layoutJob?.templateIds?.length ? <em>템플릿: {orchestrationPlan.layoutJob.templateIds.join(", ")}</em> : null}
+                  {orchestrationPlan.warnings?.length ? (
+                    <ul>
+                      {orchestrationPlan.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
+              <GenerationRunHistory
+                runs={generationRuns}
+                loading={generationRunsLoading}
+                onRefresh={refreshGenerationRuns}
               />
-            </div>
-            {needsMoreProfileCandidatesForProposals ? (
-              <div className="ai-profile-shortage">
-                <strong>프로필 후보 부족</strong>
-                <span>
-                  {savedPosterCandidateCount}/{proposalCount}개 준비됨 · 같은 누끼 복붙 포스터 시안은 만들지 않습니다.
-                </span>
-                <Button type="button" variant="secondary" onClick={() => handleGenerateProfileVariants()} disabled={Boolean(busy) || !hasTransparentCutout}>
-                  {busy === "profile-variants" ? <Loader2 className="spin-icon" size={16} /> : <Sparkles size={16} />}
-                  프로필 후보 {proposalCount}개 만들기
-                </Button>
-              </div>
-            ) : null}
-            <Button
-              type="button"
-              onClick={() => handleGenerateProposals()}
-              disabled={Boolean(busy) || Boolean(performerAsset && (!performerAssetApproved || selectedAssetNeedsProfileCandidate || needsMoreProfileCandidatesForProposals))}
-              className="w-full"
-            >
-              {busy === "proposals" ? <Loader2 className="spin-icon" size={16} /> : <Sparkles size={16} />}
-              {performerAsset && selectedAssetNeedsProfileCandidate
-                ? "프로필 후보 선택 후 포스터 시안 만들기"
-                : performerAsset && needsMoreProfileCandidatesForProposals
-                  ? `프로필 후보 ${proposalCount}개 먼저 만들기`
-                  : performerAsset && !performerAssetApproved
-                    ? "프로필 후보 승인 후 포스터 시안 만들기"
-                    : `${proposalCount}개 포스터 시안 만들기`}
-            </Button>
-            <details className="ai-operator-panel">
-              <summary>생성 상태 / 기록</summary>
-              <div className="ai-operator-panel-body">
-                {pipelineStatus?.proposalVariants ? (
-                  <p className={pipelineStatus.proposalVariants.ready ? "ai-pipeline-note is-ready" : "ai-pipeline-note is-blocked"}>
-                    {proposalVariantStatusLabel(pipelineStatus.proposalVariants, proposalCount)}
-                  </p>
-                ) : null}
-                {orchestrationPlan ? (
-                  <div className="ai-orchestration-plan">
-                    <strong>생성 계획</strong>
-                    <span>{orchestrationPlan.summary}</span>
-                    {orchestrationRun ? (
-                      <em>
-                        실행: {orchestrationRun.plannerProvider} / {orchestrationRun.proposalsCreated ?? proposals.length}개
-                      </em>
-                    ) : null}
-                    {orchestrationRun?.fallbackReason ? <em>planner fallback: {orchestrationRun.fallbackReason}</em> : null}
-                    {orchestrationPlan.layoutJob?.templateIds?.length ? <em>템플릿: {orchestrationPlan.layoutJob.templateIds.join(", ")}</em> : null}
-                    {orchestrationPlan.warnings?.length ? (
-                      <ul>
-                        {orchestrationPlan.warnings.map((warning) => (
-                          <li key={warning}>{warning}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                ) : null}
-                <GenerationRunHistory
-                  runs={generationRuns}
-                  loading={generationRunsLoading}
-                  onRefresh={refreshGenerationRuns}
-                />
-              </div>
-            </details>
-            {message ? <p className="ai-status">{message}</p> : null}
-          </div>
-        </div>
+            </>
+          }
+        />
 
         <div className="ai-poster-panel ai-poster-import-panel">
           <div className="ai-poster-panel-head">
@@ -2383,35 +2247,6 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
         </div>
       </section>
     </div>
-  );
-}
-
-function PosterUploadButton({
-  busy,
-  primary = false,
-  children,
-  onFile,
-}: {
-  busy: string | null;
-  primary?: boolean;
-  children: React.ReactNode;
-  onFile: (file: File | null) => void | Promise<void>;
-}) {
-  const className = [primary ? "ai-file-button ai-file-button-primary" : "ai-file-button", busy ? "is-disabled" : ""].filter(Boolean).join(" ");
-  return (
-    <label className={className}>
-      {busy === "poster-import" ? <Loader2 className="spin-icon" size={16} /> : <Upload size={16} />}
-      {children}
-      <input
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        disabled={Boolean(busy)}
-        onChange={(event) => {
-          void onFile(event.target.files?.[0] ?? null);
-          event.currentTarget.value = "";
-        }}
-      />
-    </label>
   );
 }
 
