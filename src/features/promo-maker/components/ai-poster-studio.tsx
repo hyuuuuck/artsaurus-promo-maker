@@ -6,7 +6,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import {
   Download,
-  ExternalLink,
   History,
   Loader2,
   MousePointer2,
@@ -21,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AssetPreviewSection } from "./asset-preview-section";
+import { EditorHeader } from "./editor-header";
 import { GuidedFlowPanel, type GuidedFlowStage } from "./guided-flow-panel";
 import type { PosterGenerationPlanRecord, PosterGenerationRunRecord } from "./ai-poster-studio-types";
 import { PosterUploadButton } from "./poster-upload-button";
@@ -1855,37 +1855,14 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
       />
 
       <section className="ai-customizer" ref={editorSectionRef}>
-        <div className="ai-section-title ai-editor-title">
-          <div>
-            <h2>간단 편집</h2>
-            <span>{project ? project.title : "시안 선택 또는 포스터 업로드로 시작"}</span>
-          </div>
-          <div className="ai-editor-toolbar" aria-label="간단 편집 작업">
-            <PosterUploadButton busy={busy} onFile={handleImportPosterFile}>
-              업로드 포스터 열기
-            </PosterUploadButton>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => activePosterLayer && handleRunPosterOcr(activePosterLayer)}
-              disabled={!activePosterLayer || Boolean(busy)}
-              title={activePosterLayer ? "업로드 포스터의 텍스트를 편집 가능한 레이어로 변환" : "업로드 포스터를 먼저 열어 주세요"}
-            >
-              {busy === "poster-ocr" ? <Loader2 className="spin-icon" size={16} /> : <TextCursorInput size={16} />}
-              OCR 텍스트 변환
-            </Button>
-            <a
-              className="ai-file-button ai-detail-editor-link"
-              href={`/app/performances/${initialPerformance.id}/pamphlet/editor`}
-              target="_blank"
-              rel="noreferrer"
-              title="레이어 상세 편집, 2단 팜플렛, SNS 규격 변환 열기"
-            >
-              <ExternalLink size={16} />
-              상세 편집 열기
-            </a>
-          </div>
-        </div>
+        <EditorHeader
+          title={project ? project.title : "시안 선택 또는 포스터 업로드로 시작"}
+          busy={busy}
+          detailEditorHref={`/app/performances/${initialPerformance.id}/pamphlet/editor`}
+          canRunOcr={Boolean(activePosterLayer)}
+          onImportPoster={handleImportPosterFile}
+          onRunOcr={() => activePosterLayer && handleRunPosterOcr(activePosterLayer)}
+        />
         <SavedProjectShelf
           projects={savedProjects}
           loading={savedProjectsLoading}
