@@ -30,6 +30,7 @@ import { PosterImportPanel } from "./poster-import-panel";
 import { posterCanvasPresets, type PosterCanvasPresetValue } from "./poster-import-settings";
 import { posterPromptPresets, type PosterPromptPreset } from "./poster-prompt-presets";
 import type { ProfileVariantFailureRecord } from "./profile-variant-panel";
+import { ProposalSection, type ProposalQualityReportRecord } from "./proposal-section";
 import { QrPurposePanel } from "./qr-purpose-panel";
 import { ReferencePhotoStep } from "./reference-photo-step";
 import { StartModePanel } from "./start-mode-panel";
@@ -159,25 +160,6 @@ type ProposalRecord = {
   previewUrl: string;
   editableDesignJson: string;
   qualityReportJson?: string | null;
-};
-
-type ProposalQualityReportRecord = {
-  rating: "good" | "review" | "problem";
-  score: number;
-  summary: string;
-  issues: Array<{
-    id: string;
-    severity: "error" | "warning" | "info";
-    category: string;
-    layerIds: string[];
-    message: string;
-  }>;
-  autoFixes?: Array<{
-    id: string;
-    category: string;
-    layerIds: string[];
-    message: string;
-  }>;
 };
 
 type PosterProposalGenerateResponse = {
@@ -1865,23 +1847,12 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
         />
       ) : null}
 
-      <section className="ai-proposal-section" ref={proposalSectionRef}>
-        <div className="ai-section-title">
-          <h2>AI 포스터 시안</h2>
-          <span>{proposals.length ? `${proposals.length}개` : "사진과 정보를 입력한 뒤 생성"}</span>
-        </div>
-        <div className="ai-proposal-grid">
-          {proposals.map((proposal, index) => (
-            <ProposalCard
-              key={proposal.id}
-              proposal={proposal}
-              index={index}
-              busy={busy === `proposal-${proposal.id}`}
-              onSelect={() => handleSelectProposal(proposal)}
-            />
-          ))}
-        </div>
-      </section>
+      <ProposalSection
+        sectionRef={proposalSectionRef}
+        proposals={proposals}
+        busyProposalId={busy?.startsWith("proposal-") ? busy.replace("proposal-", "") : null}
+        onSelect={handleSelectProposal}
+      />
 
       <section className="ai-customizer" ref={editorSectionRef}>
         <div className="ai-section-title ai-editor-title">
@@ -3337,45 +3308,6 @@ function SavedProjectShelf({
   );
 }
 
-function ProposalCard({
-  proposal,
-  index,
-  busy,
-  onSelect,
-}: {
-  proposal: ProposalRecord;
-  index: number;
-  busy: boolean;
-  onSelect: () => void;
-}) {
-  const qualityReport = parseProposalQualityReport(proposal.qualityReportJson);
-  return (
-    <article className="ai-proposal-card">
-      <span>{index + 1}</span>
-      <img src={proposal.previewUrl || proposal.thumbnailUrl} alt="" />
-      <strong>{proposal.title}</strong>
-      {qualityReport ? (
-        <div className={`ai-quality-badge is-${qualityReport.rating}`}>
-          <b>{qualityRatingLabel(qualityReport.rating)}</b>
-          <em>{qualityReport.score}점</em>
-        </div>
-      ) : null}
-      {qualityReport?.issues.length ? (
-        <div className="ai-quality-issues">
-          {qualityReport.issues.slice(0, 2).map((issue) => (
-            <small key={issue.id}>{issue.message}</small>
-          ))}
-        </div>
-      ) : null}
-      {qualityReport?.autoFixes?.length ? <small className="ai-quality-autofix">자동 보정 {qualityReport.autoFixes.length}개 적용</small> : null}
-      <button type="button" className="ai-proposal-open-button" onClick={onSelect} disabled={busy}>
-        {busy ? <Loader2 className="spin-icon" size={16} /> : <MousePointer2 size={16} />}
-        간단 편집으로 열기
-      </button>
-    </article>
-  );
-}
-
 function NumberField({ label, value, disabled = false, onChange }: { label: string; value: number; disabled?: boolean; onChange: (value: number) => void }) {
   return (
     <label className="ai-field">
@@ -3481,29 +3413,6 @@ function formatRunTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
-}
-
-function parseProposalQualityReport(value?: string | null): ProposalQualityReportRecord | null {
-  if (!value) return null;
-  try {
-    const parsed = JSON.parse(value) as ProposalQualityReportRecord;
-    if (!parsed || typeof parsed !== "object" || !["good", "review", "problem"].includes(parsed.rating)) return null;
-    return {
-      rating: parsed.rating,
-      score: Number.isFinite(parsed.score) ? Math.round(parsed.score) : 0,
-      summary: typeof parsed.summary === "string" ? parsed.summary : "",
-      issues: Array.isArray(parsed.issues) ? parsed.issues : [],
-      autoFixes: Array.isArray(parsed.autoFixes) ? parsed.autoFixes : [],
-    };
-  } catch {
-    return null;
-  }
-}
-
-function qualityRatingLabel(rating: ProposalQualityReportRecord["rating"]) {
-  if (rating === "good") return "추천";
-  if (rating === "review") return "확인 필요";
-  return "문제 있음";
 }
 
 function borderStyle(layer: PosterShapeLayer) {
