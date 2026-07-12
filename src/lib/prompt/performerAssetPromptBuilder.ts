@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import type { PerformerAssetGenerationOptions } from "@/features/promo-maker/poster/types";
 import { ARTSAURUS_CLASSICAL_PERFORMER_RULE } from "@/lib/prompt/artsaurusPromptRules";
 
-export const PERFORMER_ASSET_PROMPT_VERSION = "performer-asset-v21";
+export const PERFORMER_ASSET_PROMPT_VERSION = "performer-asset-v22";
 
 type BuildPromptInput = {
   options: PerformerAssetGenerationOptions;
@@ -70,7 +70,7 @@ export function buildPerformerAssetPrompt({ options }: BuildPromptInput) {
     actionPrompt,
     mood,
     shouldAllowPerformancePose
-      ? "Do not make a simple background swap. The output must differ from the approved asset through performance-ready pose, hand/arm placement, instrument/stage context, crop, or silhouette while keeping the same face angle close."
+      ? "Follow the candidate slot strategy. If this slot is a preservation baseline, prioritize print-quality polish, background cleanup, and identity stability over pose change. If this slot is a variation candidate, it must differ from the approved asset through performance-ready pose, hand/arm placement, instrument/stage context, crop, negative space, or silhouette while keeping the same face angle close."
       : "Keep the uploaded photo's person and approximate pose recognizable, but make the output visibly more professional than the source photo.",
     "Compose a head-and-torso, half-body, or seated profile asset matching the source pose. Keep the performer large enough for poster use, with clean edges around hair, shoulders, arms, and clothing.",
     shouldAllowPerformancePose
@@ -102,8 +102,8 @@ function identityModeDirection(identityMode: PerformerAssetGenerationOptions["id
   if (identityMode === "portrait_variant") {
     return [
       "Identity mode: approved-asset-based profile candidate generation.",
-      "Use the approved performer asset and transparent cutout as the primary visual material, not merely as a sticker or pasted layer.",
-      "Create a new professional classical musician profile photograph candidate. This must not be only a background replacement. Change the body composition through hands, arms, shoulders, seated/standing posture, crop, lower-body silhouette, or instrument/performance context.",
+      "Use the approved performer asset and transparent cutout as identity, face-angle, outfit-category, and silhouette references, not as a literal sticker to paste unchanged unless the candidate slot explicitly requests a preservation baseline.",
+      "Create a professional classical musician profile photograph candidate according to the requested candidate slot strategy. Some slots intentionally preserve the original pose for a safe print-quality baseline; other slots should vary hands, arms, shoulders, seated/standing posture, crop, lower-body silhouette, or instrument/performance context.",
       "Preserve apparent identity, face direction, gaze, facial proportions, age impression, skin tone, hairline, hairstyle family, eyes, nose, mouth, jawline, expression, outfit category, and instrument presence.",
       "Do not rotate the face into a noticeably different angle. Do not make a different person. If a larger pose change is requested, keep the face angle close and move the body, hands, instrument, chair, piano, or crop instead.",
     ].join(" ");

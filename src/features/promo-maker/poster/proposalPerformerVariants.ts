@@ -17,7 +17,7 @@ import type { PerformerVisual, PosterTemplateMeta } from "./posterProposalTempla
 import type { PosterGenerationPlan } from "./generationOrchestrator";
 import { readDb } from "../server/localStore";
 
-export const POSTER_PROPOSAL_VARIANT_PROMPT_VERSION = "poster-proposal-performer-v3";
+export const POSTER_PROPOSAL_VARIANT_PROMPT_VERSION = "poster-proposal-performer-v4";
 const DUPLICATE_CUTOUT_IOU_THRESHOLD = 0.88;
 const DEFAULT_VARIANT_CANDIDATE_POOL_SIZE = 2;
 
@@ -270,7 +270,8 @@ export function buildProposalVariantPrompt(input: {
     "Face-angle lock is mandatory: preserve the primary reference face direction, camera yaw, pitch, roll, gaze direction, expression family, hairline, eye spacing, nose shape, mouth shape, jawline, and cheek structure.",
     "If the primary reference face is frontal, keep the generated face frontal or only a very slight three-quarter turn. Do not turn it into a side profile, looking-away portrait, over-the-shoulder pose, or a noticeably different head angle.",
     "If the primary reference face is already three-quarter, keep the same three-quarter direction and degree. Do not mirror it or rotate further unless the user uploaded a matching formal performance reference for that exact angle.",
-    "Do not paste the provided transparent cutout or uploaded photo unchanged. Do not merely crop, resize, remove the background, or copy the same full-body pose. Create a new professional promotional image by varying background, lighting, outfit neatness, instrument context, arm/hand placement, and lower-body composition while keeping the face direction stable.",
+    "Do not solve every poster template with the same head-and-torso image. Follow the poster template mood and create a distinct performer composition role for this template: crop, negative space, arm/hand placement, instrument context, stage distance, and body silhouette may vary while the face direction stays stable.",
+    "Do not paste the provided transparent cutout or uploaded photo unchanged unless the template explicitly needs a locked photo-editorial source. Do not merely crop, resize, remove the background, or copy the same full-body pose for every template.",
     "The staging, lighting, clothing polish, background, and performance context may change meaningfully, but the face camera angle must stay close enough that the performer feels like the same person at a glance.",
     "Auxiliary reference photos may show intended instrument, posture, or styling. Use visible instruments and formal performance posture from auxiliary references as guidance, but ignore casual selfie angle, tilted head selfie composition, cute hand gestures, peace signs, finger hearts, sticker-photo poses, and social-media styling.",
     "If an auxiliary image contains both a classical instrument and a casual selfie pose, extract the instrument context only and create a serious concert/performance pose.",

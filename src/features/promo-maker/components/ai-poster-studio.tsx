@@ -358,84 +358,132 @@ const posterPromptPresets = [
 
 const profileVariantDirections = [
   {
-    label: "악기 리사이틀",
+    label: "원본 보존 베이스",
     style: "clean",
     backgroundPolicy: "solid-cutout",
-    mood: "정면 얼굴을 유지한 악기 연주 프로필",
+    mood: "원본 포즈를 살린 고화질 프로필",
+    slotPurpose:
+      "Safe baseline candidate. This slot should prove that the uploaded person can become a print-quality recital profile asset without changing identity or pose.",
     stylePrompt:
-      "Create a refined classical recital profile candidate where the face direction and gaze remain close to the approved asset, but the torso, shoulders, hands, and instrument-performance context are newly composed. If the performer is a pianist, show a natural grand-piano or keyboard performance context without turning the face away.",
+      "Create a refined classical recital profile baseline. Preserve the approved asset's face direction, gaze, expression family, hairstyle, outfit category, body pose, hand placement, and silhouette as closely as possible while improving lighting, sharpness, skin texture, fabric detail, background cleanliness, and print quality.",
     actionPrompt:
-      "Vary the upper-body pose into a believable performance-ready musician pose. Keep the face angle close; change hands, arms, seated/standing posture, and instrument staging instead of only changing the background.",
+      "Do not force a new instrument, seated posture, or new body pose in this slot. It is acceptable for this candidate to stay close to the baseline if the result looks like a professional recital profile photo rather than a raw upload.",
+    diversityPrompt:
+      "This is the reference-preserving anchor candidate; do not reject it just because it is less varied than later slots.",
+    facePolicy:
+      "Maximum identity lock: preserve face angle, gaze, expression, face proportions, hairline, and original pose.",
   },
   {
-    label: "콘서트홀 연주",
-    style: "romantic",
+    label: "상반신 변주",
+    style: "clean",
     backgroundPolicy: "soft-studio",
-    mood: "콘서트홀 연주 장면",
+    mood: "손과 어깨만 바꾼 상반신 프로필",
+    slotPurpose:
+      "Controlled variation candidate. Change the poster silhouette enough to feel new while keeping the head, face angle, and outfit category stable.",
     stylePrompt:
-      "Create a warm concert-hall performance profile candidate. Preserve facial identity, gaze, face angle, hair, and outfit category, but make the body pose visibly different through recital-stage posture, hands, shoulders, and instrument context.",
+      "Create a clean upper-body classical musician profile candidate. Keep the head and face almost unchanged, but vary shoulders, arm line, hand placement, crop, and torso posture. Use a simple studio or recital-ready background with clear edge separation.",
     actionPrompt:
-      "Use a serious classical performance posture, such as seated at piano, holding/playing the stated instrument, or preparing to perform. Do not use cute selfie gestures or sticker-photo poses.",
+      "Do not add a random instrument if none is specified. The visible change should come from hands, shoulders, crop, and posture, not from rotating the face or replacing the person.",
+    diversityPrompt:
+      "This candidate should not be a background-only swap. It should differ from the baseline through upper-body composition while staying conservative.",
+    facePolicy:
+      "Strong identity lock: face angle and gaze should remain nearly the same; body can change moderately.",
   },
   {
-    label: "클래식 에디토리얼",
-    style: "editorial",
+    label: "악기 맥락형",
+    style: "romantic",
     backgroundPolicy: "solid-cutout",
-    mood: "클래식 에디토리얼",
+    mood: "악기/연주 맥락이 보이는 프로필",
+    slotPurpose:
+      "Instrument-context candidate. Use the stated or visible instrument to make the profile useful for musician promotion, without sacrificing face recognition.",
     stylePrompt:
-      "Create a premium editorial classical musician profile candidate. Keep the face angle close and recognizably the same person, while changing upper-body composition, hand placement, formal performance posture, and instrument staging enough to feel like a new usable profile asset.",
+      "Create a professional classical performer profile candidate with clear instrument or recital context. If the performer is a pianist, use a grand piano, keyboard edge, bench, hands near keys, or seated pianist context. For other specified instruments, show a natural performance-ready relationship with that instrument.",
     actionPrompt:
-      "Create a composed music-magazine style performance portrait: formal posture, hands intentionally placed, instrument or recital context if provided, face still camera-facing.",
+      "Keep the face direction close to the approved asset. Change the performance context through hands, torso, instrument placement, seat, stand, or background. Avoid side-profile faces and avoid cute/selfie gestures.",
+    diversityPrompt:
+      "This candidate may change body and instrument staging more than the first two slots, but the face must still read as the same performer.",
+    facePolicy:
+      "Identity lock with performance context: keep face direction close; allow body, hands, and instrument relationship to change.",
   },
   {
-    label: "절제된 무대감",
+    label: "에디토리얼 포스터형",
+    style: "editorial",
+    backgroundPolicy: "soft-studio",
+    mood: "포스터 타이포를 얹기 좋은 에디토리얼",
+    slotPurpose:
+      "Poster-composition candidate. Create a profile asset that leaves useful negative space and feels like it belongs inside a recital poster.",
+    stylePrompt:
+      "Create a premium editorial classical musician profile candidate for poster layout use. Preserve the same person and face angle, but adjust crop, body placement, lighting direction, and negative space so typography can sit around the performer. Use refined magazine-like composition, not a sticker-photo crop.",
+    actionPrompt:
+      "The performer may be slightly off-center, half-body, seated, or standing. The change should support poster composition and text placement. Do not place text inside the generated image.",
+    diversityPrompt:
+      "This candidate should feel different in framing and negative space, even if the pose stays restrained.",
+    facePolicy:
+      "Moderate identity lock: face must stay recognizable and close in angle; crop and composition may vary.",
+  },
+  {
+    label: "무대 실루엣",
     style: "dramatic",
     backgroundPolicy: "stage-light",
-    mood: "절제된 무대감",
+    mood: "넓은 무대감과 공연 실루엣",
+    slotPurpose:
+      "High-variation candidate. Explore a wider stage or recital silhouette while keeping the face from drifting into another person.",
     stylePrompt:
-      "Create a restrained dramatic stage profile candidate for a classical performance poster. Use stage light plus a different performance-ready body pose; keep the face direction, gaze family, and facial structure close to the approved asset.",
+      "Create a restrained dramatic stage profile candidate with a wider recital silhouette. Use stage light, concert hall ambience, seated/standing posture, instrument context if specified, and a more complete body/crop than the baseline where possible.",
     actionPrompt:
-      "Use a dramatic but serious musician posture. Hands, torso, instrument, chair, piano, bow, or music-stand context may change; face angle must not swing into profile.",
-  },
-  {
-    label: "갤러리 프로필",
-    style: "contemporary",
-    backgroundPolicy: "soft-studio",
-    mood: "현대적인 연주자 프로필",
-    stylePrompt:
-      "Create a modern gallery-style classical performer profile candidate. Preserve face, hair, expression family, outfit category, and face direction, but introduce a clean alternate performance pose with changed arms, hands, crop, and instrument context where appropriate.",
-    actionPrompt:
-      "Make it feel like a new professional musician profile photo, not the same cutout on another background. Avoid side-profile face rotation.",
+      "This slot may vary body posture, chair, piano, music stand, hands, arms, or lower-body crop more strongly. If no matching pose reference exists, keep the change moderate rather than rotating the face away.",
+    diversityPrompt:
+      "This is the most adventurous default slot, but it still must not become a different person.",
+    facePolicy:
+      "Identity lock with widest body variation: face direction may only shift slightly; body and stage context may change more.",
   },
   {
     label: "미니멀 프로필",
     style: "clean",
     backgroundPolicy: "transparent",
     mood: "미니멀 연주자 프로필",
+    slotPurpose:
+      "Cutout-optimized reserve candidate. Create a simple profile asset with excellent edge separation and minimal visual noise.",
     stylePrompt:
       "Create a minimal poster-ready classical musician profile candidate with a clean background optimized for cutout. Keep the same person and face angle, but vary hand placement, shoulders, seated/standing posture, and instrument-performance context.",
     actionPrompt:
       "Produce a different silhouette from the approved cutout while preserving the face direction. Use simple musician posture, not a casual portrait pose.",
+    diversityPrompt:
+      "Prioritize clean cutout quality and usable silhouette over dramatic styling.",
+    facePolicy:
+      "Strong identity lock with simple silhouette variation.",
   },
   {
     label: "부드러운 독주회",
     style: "romantic",
     backgroundPolicy: "soft-studio",
     mood: "부드러운 독주회 프로필",
+    slotPurpose:
+      "Soft recital reserve candidate. Create a gentle recital profile with warmer light and graceful posture.",
     stylePrompt:
       "Create a soft recital profile candidate with gentle print-quality retouching. Preserve face shape, face angle, eyes, nose, mouth, jawline, hairstyle family, and outfit category; vary the pose through hands, shoulders, instrument, and stage-readiness.",
     actionPrompt:
       "Use a graceful classical recital pose. If the instrument is piano, allow seated piano context while keeping the face toward camera.",
+    diversityPrompt:
+      "Vary warmth, light, and graceful posture without cute social-media styling.",
+    facePolicy:
+      "Strong identity lock with warmer lighting and gentle posture variation.",
   },
   {
     label: "고급 저채도",
     style: "editorial",
     backgroundPolicy: "solid-cutout",
     mood: "고급 흑백/저채도 프로필",
+    slotPurpose:
+      "Low-saturation reserve candidate. Make a serious premium profile for monochrome or luxury poster layouts.",
     stylePrompt:
       "Create a premium low-saturation or monochrome-leaning classical performance profile candidate. Do not alter identity, face direction, expression, or clothing category; do create a distinct musician pose, crop, hand placement, and instrument context.",
     actionPrompt:
       "Use an elegant stage-performance silhouette with a stable camera-facing face. Avoid merely pasting the same cutout onto a monochrome background.",
+    diversityPrompt:
+      "Make the tonal finish and silhouette distinct enough for a separate poster direction.",
+    facePolicy:
+      "Strong identity lock with premium tonal variation.",
   },
 ] as const;
 
@@ -904,14 +952,16 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
                 backgroundPolicy: direction.backgroundPolicy,
                 mood: direction.mood,
                 stylePrompt: [
-                  `Variant attempt ${attemptIndex + 1} for ${profileVariantCount} accepted profile candidates: ${direction.stylePrompt}`,
-                  "This candidate must be visibly different from the baseline in body pose, hands, arms, crop, or instrument/performance context. Changing only the background is not enough.",
+                  `Profile candidate slot ${attemptIndex + 1}/${profileVariantCount}: ${direction.label}.`,
+                  `Slot purpose: ${direction.slotPurpose}`,
+                  direction.stylePrompt,
+                  direction.diversityPrompt,
                 ]
                   .filter(Boolean)
                   .join("\n"),
                 actionPrompt: [
                   direction.actionPrompt,
-                  "Keep the face camera angle, gaze direction, and facial proportions close to the approved asset. Change body, hands, arms, instrument staging, seated/standing posture, or lower-body composition instead.",
+                  direction.facePolicy,
                 ]
                   .filter(Boolean)
                   .join("\n"),
