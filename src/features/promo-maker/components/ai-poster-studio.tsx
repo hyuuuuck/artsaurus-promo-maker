@@ -28,6 +28,7 @@ import { PosterSetupPanel } from "./poster-setup-panel";
 import { PosterImportPanel } from "./poster-import-panel";
 import { posterCanvasPresets, type PosterCanvasPresetValue } from "./poster-import-settings";
 import { posterPromptPresets, type PosterPromptPreset } from "./poster-prompt-presets";
+import { ProfileVariantPanel, type ProfileVariantFailureRecord } from "./profile-variant-panel";
 import { QrPurposePanel } from "./qr-purpose-panel";
 import { ReferencePhotoStep } from "./reference-photo-step";
 import { StartModePanel } from "./start-mode-panel";
@@ -183,12 +184,6 @@ type PosterProposalGenerateResponse = {
   orchestrationPlan?: PosterGenerationPlanRecord;
   orchestrationRun?: PosterGenerationRunRecord;
   visualFallbackTemplateIds?: string[];
-};
-
-type ProfileVariantFailureRecord = {
-  index: number;
-  label: string;
-  reason: string;
 };
 
 type ProjectRecord = {
@@ -1970,44 +1965,15 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
               )}
             </div>
           </div>
-          {profileVariantAssets.length || profileVariantFailures.length ? (
-            <div className="ai-profile-variant-panel" ref={profileVariantPanelRef}>
-              <div className="ai-profile-variant-head">
-                <strong>생성된 프로필 후보</strong>
-                <span>
-                  성공 {profileVariantAssets.length}개
-                  {profileVariantFailures.length ? ` / 실패 ${profileVariantFailures.length}개` : ""} · 가장 닮고 공연 홍보물에 어울리는 프로필 후보를 선택하세요.
-                </span>
-              </div>
-              <div className="ai-profile-variant-grid">
-                {profileVariantAssets.map((asset, index) => (
-                  <button
-                    key={asset.id}
-                    type="button"
-                    className={performerAsset.id === asset.id ? "ai-profile-variant-card active" : "ai-profile-variant-card"}
-                    onClick={() => handleUseProfileVariant(asset)}
-                    disabled={Boolean(busy)}
-                  >
-                    <span>{index + 1}</span>
-                    <img src={asset.generatedImageUrl || asset.thumbnailUrl || asset.cutoutPngUrl} alt="" />
-                    <strong>{assetModeLabel(asset)}</strong>
-                    <em>이 프로필 후보 사용</em>
-                  </button>
-                ))}
-                {profileVariantFailures.map((failure) => (
-                  <div key={`${failure.index}-${failure.label}`} className="ai-profile-variant-card is-failed">
-                    <span>실패</span>
-                    <div className="ai-profile-variant-failure">
-                      <strong>생성 실패</strong>
-                      <small>{failure.label}</small>
-                    </div>
-                    <strong>{failure.label}</strong>
-                    <em>{failure.reason}</em>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          <ProfileVariantPanel
+            panelRef={profileVariantPanelRef}
+            assets={profileVariantAssets}
+            failures={profileVariantFailures}
+            activeAssetId={performerAsset.id}
+            busy={Boolean(busy)}
+            getAssetLabel={assetModeLabel}
+            onUseAsset={handleUseProfileVariant}
+          />
         </section>
       ) : null}
 
