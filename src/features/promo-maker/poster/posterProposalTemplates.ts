@@ -19,7 +19,7 @@ type BuildProposalInput = {
   performerVisuals?: Partial<Record<PosterTemplateId, PerformerVisual>>;
   concertInfo: PosterConcertInfo;
   qrTargetUrl: string;
-  count?: 2 | 4 | 6 | 8;
+  count?: number;
   templates?: PosterTemplateMeta[];
   generationPlan?: PosterGenerationPlan;
 };
@@ -44,7 +44,7 @@ export const posterProposalTemplates: PosterTemplateMeta[] = [
   { id: "grid-portfolio", title: "Grid Portfolio", background: "#faf8f3" },
 ];
 
-export function selectPosterProposalTemplates(count?: 2 | 4 | 6 | 8, preferredTemplateIds: PosterTemplateId[] = []) {
+export function selectPosterProposalTemplates(count?: number, preferredTemplateIds: PosterTemplateId[] = []) {
   const ordered: PosterTemplateMeta[] = [];
   const addTemplate = (templateId: PosterTemplateId) => {
     const template = posterProposalTemplates.find((item) => item.id === templateId);

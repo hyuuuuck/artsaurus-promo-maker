@@ -6,7 +6,7 @@ import { buildPosterProposals, selectPosterProposalTemplates, type PerformerVisu
 import { generateProposalPerformerVariants } from "../poster/proposalPerformerVariants";
 import { analyzePosterProposalQuality, autoRepairPosterDesign } from "../poster/proposalQuality";
 import { renderAndStorePosterPreview } from "../poster/renderPosterPreview";
-import type { PosterConcertInfo, PosterTemplateId } from "../poster/types";
+import { POSTER_PROPOSAL_COUNT_DEFAULT, POSTER_PROPOSAL_COUNT_MAX, POSTER_PROPOSAL_COUNT_MIN, type PosterConcertInfo, type PosterTemplateId } from "../poster/types";
 import { errorResponse, ok, parseError, parseRecord, readJson } from "./http";
 import { insertByNewest, mutateDb, readDb, standaloneUserId } from "./localStore";
 import type { GeneratedPerformerAsset, PosterGenerationRun, PosterProposal } from "./types";
@@ -320,8 +320,10 @@ function readQrTargetType(value: unknown): PosterConcertInfo["qrTargetType"] {
   return typeof value === "string" && allowed.has(value) ? (value as PosterConcertInfo["qrTargetType"]) : "ticket_link";
 }
 
-function readProposalCount(value: unknown): 2 | 4 | 6 | 8 {
-  return value === 2 || value === 4 || value === 6 || value === 8 ? value : 4;
+function readProposalCount(value: unknown): number {
+  const numeric = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+  if (!Number.isFinite(numeric)) return POSTER_PROPOSAL_COUNT_DEFAULT;
+  return Math.max(POSTER_PROPOSAL_COUNT_MIN, Math.min(POSTER_PROPOSAL_COUNT_MAX, Math.round(numeric)));
 }
 
 function readString(value: unknown) {

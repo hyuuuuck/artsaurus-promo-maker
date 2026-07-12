@@ -2,7 +2,7 @@ import type { GeneratedPerformerAsset } from "../server/types";
 import { performerAssetAllowedOperations, performerAssetDisallowedOperations } from "./assetPolicy";
 import { posterTemplateIds, type PosterConcertInfo, type PosterTemplateId } from "./types";
 
-type ProposalCount = 2 | 4 | 6 | 8;
+type ProposalCount = number;
 
 export type PerformerPosePolicy = "locked_asset" | "subtle_profile_variation" | "pose_reference_required";
 export type BackgroundJobMode = "template_graphics" | "background_relight" | "stage_background_generation";

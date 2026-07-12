@@ -357,7 +357,7 @@ async function renderTextBlock(input: {
   for (const [index, line] of lines.entries()) {
     const top = Math.round(index * lineHeight);
     if (top >= height) break;
-    const textImage = await sharp({
+    let textImage = await sharp({
       text: {
         text: pangoTextMarkup(line || " ", input.color, input.fontStyle),
         font: `${font.family} ${Math.max(1, Math.round(input.fontSize))}px`,
@@ -367,9 +367,24 @@ async function renderTextBlock(input: {
     })
       .png()
       .toBuffer();
-    const metadata = await sharp(textImage).metadata();
-    const textWidth = metadata.width ?? 0;
-    const textHeight = metadata.height ?? 0;
+    let metadata = await sharp(textImage).metadata();
+    let textWidth = metadata.width ?? 0;
+    let textHeight = metadata.height ?? 0;
+    const maxTextHeight = Math.max(1, height - top);
+    if (textWidth > width || textHeight > maxTextHeight) {
+      textImage = await sharp(textImage)
+        .resize({
+          width,
+          height: maxTextHeight,
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .png()
+        .toBuffer();
+      metadata = await sharp(textImage).metadata();
+      textWidth = metadata.width ?? 0;
+      textHeight = metadata.height ?? 0;
+    }
     const left = input.align === "center" ? Math.round((width - textWidth) / 2) : input.align === "right" ? Math.round(width - textWidth) : 0;
     composites.push({ input: textImage, left: Math.max(0, left), top });
 

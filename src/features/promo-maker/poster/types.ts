@@ -3,6 +3,10 @@ export const POSTER_CANVAS = {
   height: 1350,
 } as const;
 
+export const POSTER_PROPOSAL_COUNT_MIN = 1;
+export const POSTER_PROPOSAL_COUNT_MAX = 8;
+export const POSTER_PROPOSAL_COUNT_DEFAULT = 2;
+
 export const posterTemplateIds = [
   "recital-photo-editorial",
   "minimal-recital",

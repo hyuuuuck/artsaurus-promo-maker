@@ -24,7 +24,18 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { normalizePosterFont, posterBrowserFontStack, posterFontOptions } from "../poster/fonts";
-import { POSTER_CANVAS, type PosterDesign, type PosterImageLayer, type PosterLayer, type PosterQrLayer, type PosterShapeLayer, type PosterTextLayer } from "../poster/types";
+import {
+  POSTER_CANVAS,
+  POSTER_PROPOSAL_COUNT_DEFAULT,
+  POSTER_PROPOSAL_COUNT_MAX,
+  POSTER_PROPOSAL_COUNT_MIN,
+  type PosterDesign,
+  type PosterImageLayer,
+  type PosterLayer,
+  type PosterQrLayer,
+  type PosterShapeLayer,
+  type PosterTextLayer,
+} from "../poster/types";
 
 export type InitialPerformance = {
   id: string;
@@ -314,9 +325,8 @@ const wardrobeOptions = [
   { value: "simple modern concert casualwear", label: "캐주얼 공연복" },
 ] as const;
 
-const posterProposalCountOptions = [2] as const;
 const profileVariantCountOptions = [5] as const;
-type ProposalCount = (typeof posterProposalCountOptions)[number];
+type ProposalCount = number;
 type ProfileVariantCount = (typeof profileVariantCountOptions)[number];
 
 const posterPromptPresets = [
@@ -433,6 +443,12 @@ function selectProfileVariantDirections(count: number) {
   return profileVariantDirections.slice(0, count);
 }
 
+function normalizeProposalCount(value: string | number) {
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numeric)) return POSTER_PROPOSAL_COUNT_DEFAULT;
+  return Math.max(POSTER_PROPOSAL_COUNT_MIN, Math.min(POSTER_PROPOSAL_COUNT_MAX, Math.round(numeric)));
+}
+
 const referencePoseOptions = [
   { value: "front", label: "사용할 사진", fallbackLabel: "프로필/포즈 사진" },
   { value: "left", label: "추가 참고 1", fallbackLabel: "AI 보정용" },
@@ -467,7 +483,7 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
   const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus | null>(() => (demoMode ? createDemoPipelineStatus() : null));
   const [zoom, setZoom] = useState(0.52);
   const [baseScale, setBaseScale] = useState(0.52);
-  const [proposalCount, setProposalCount] = useState<ProposalCount>(2);
+  const [proposalCount, setProposalCount] = useState<ProposalCount>(POSTER_PROPOSAL_COUNT_DEFAULT);
   const [profileVariantCount, setProfileVariantCount] = useState<ProfileVariantCount>(5);
   const [personImageConsent, setPersonImageConsent] = useState(false);
   const [assetUsageRightsConfirmed, setAssetUsageRightsConfirmed] = useState(false);
@@ -1681,13 +1697,15 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
           <div className="ai-generation-inline">
             <div className="ai-field">
               <span>포스터 시안 수</span>
-              <div className="segmented-control proposal-count-control" role="group" aria-label="포스터 시안 수 선택">
-                {posterProposalCountOptions.map((count) => (
-                  <button key={count} type="button" className={proposalCount === count ? "active" : ""} onClick={() => setProposalCount(count)}>
-                    {count}개
-                  </button>
-                ))}
-              </div>
+              <input
+                type="number"
+                min={POSTER_PROPOSAL_COUNT_MIN}
+                max={POSTER_PROPOSAL_COUNT_MAX}
+                step={1}
+                value={proposalCount}
+                onChange={(event) => setProposalCount(normalizeProposalCount(event.target.value))}
+                disabled={Boolean(busy)}
+              />
             </div>
             {needsMoreProfileCandidatesForProposals ? (
               <div className="ai-profile-shortage">
