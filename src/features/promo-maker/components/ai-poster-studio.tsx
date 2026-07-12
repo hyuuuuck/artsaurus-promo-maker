@@ -28,6 +28,7 @@ import type { PosterGenerationPlanRecord, PosterGenerationRunRecord } from "./ai
 import { PosterUploadButton } from "./poster-upload-button";
 import { PosterSetupPanel } from "./poster-setup-panel";
 import { posterPromptPresets, type PosterPromptPreset } from "./poster-prompt-presets";
+import { QrPurposePanel } from "./qr-purpose-panel";
 import { ReferencePhotoStep } from "./reference-photo-step";
 import { StartModePanel } from "./start-mode-panel";
 import { normalizePosterFont, posterBrowserFontStack, posterFontOptions } from "../poster/fonts";
@@ -1853,26 +1854,11 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
           }
         />
 
-        <div className="ai-poster-panel">
-          <div className="ai-poster-panel-head">
-            <QrCode size={18} />
-            <h2>QR 목적</h2>
-          </div>
-          <label className="ai-field">
-            <span>연결 대상</span>
-            <select value={concertInfo.qrTargetType} onChange={(event) => setConcertInfo({ ...concertInfo, qrTargetType: event.target.value })}>
-              <option value="ticket_link">예매 링크</option>
-              <option value="pamphlet_link">팜플렛 링크</option>
-              <option value="checkin_link">체크인 링크</option>
-              <option value="artist_profile_link">아티스트 프로필</option>
-              <option value="custom_url">직접 입력</option>
-            </select>
-          </label>
-          <label className="ai-field">
-            <span>직접 입력 URL</span>
-            <input value={concertInfo.qrTargetUrl} onChange={(event) => setConcertInfo({ ...concertInfo, qrTargetUrl: event.target.value })} placeholder="https://" />
-          </label>
-        </div>
+        <QrPurposePanel
+          qrTargetType={concertInfo.qrTargetType}
+          qrTargetUrl={concertInfo.qrTargetUrl}
+          onChange={(patch) => setConcertInfo((current) => ({ ...current, ...patch }))}
+        />
       </section>
 
       {performerAsset ? (
