@@ -23,6 +23,7 @@ import {
   Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GuidedFlowPanel, type GuidedFlowStage } from "./guided-flow-panel";
 import { normalizePosterFont, posterBrowserFontStack, posterFontOptions } from "../poster/fonts";
 import {
   POSTER_CANVAS,
@@ -632,7 +633,7 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
       savedPosterCandidateCount < proposalCount,
   );
   const currentAssetCanGenerateProposals = Boolean(performerAsset && performerAssetApproved && !selectedAssetNeedsProfileCandidate && !needsMoreProfileCandidatesForProposals);
-  const guidedFlowStage = project || design ? "edit" : proposals.length ? "poster" : performerAssetApproved ? "proposal" : performerAsset ? "profile" : "input";
+  const guidedFlowStage: GuidedFlowStage = project || design ? "edit" : proposals.length ? "poster" : performerAssetApproved ? "proposal" : performerAsset ? "profile" : "input";
   const shouldShowProfileVariantControls =
     guidedFlowStage === "profile" || needsMoreProfileCandidatesForProposals || busy === "profile-variants";
 
@@ -1640,17 +1641,6 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
     setOrchestrationPrompt(preset.value);
   }
 
-  const guidedStageIndex = ["input", "profile", "proposal", "poster", "edit"].indexOf(guidedFlowStage);
-  const guidedStageCopy =
-    guidedFlowStage === "input"
-      ? "공연 정보와 연주자 사진을 넣고 전체 시안 준비를 누르면 프로필 후보까지 이어서 준비합니다."
-      : guidedFlowStage === "profile"
-        ? "얼굴이 가장 닮고 홍보물에 어울리는 프로필 후보를 하나 고르면 됩니다."
-        : guidedFlowStage === "proposal"
-          ? "승인한 프로필 후보로 포스터 시안을 만들 차례입니다."
-          : guidedFlowStage === "poster"
-            ? "마음에 드는 포스터 시안을 선택하면 간단 편집으로 넘어갑니다."
-            : "간단 편집에서 문구, QR, 색감, 위치를 정리하고 저장하면 됩니다.";
   const workProgress = buildWorkProgress({
     busy,
     message,
@@ -1680,22 +1670,7 @@ export function AiPosterStudio({ initialPerformance, demoMode = false }: { initi
         </div>
       </section>
 
-      <section className="ai-guided-flow-panel" aria-label="홍보물 제작 흐름">
-        <div className="ai-guided-flow-steps">
-          {[
-            ["input", "자료 넣기"],
-            ["profile", "프로필 고르기"],
-            ["proposal", "시안 만들기"],
-            ["poster", "포스터 고르기"],
-            ["edit", "편집하기"],
-          ].map(([key, label], index) => (
-            <span key={key} className={index < guidedStageIndex ? "done" : index === guidedStageIndex ? "active" : ""}>
-              {label}
-            </span>
-          ))}
-        </div>
-        <strong>{guidedStageCopy}</strong>
-      </section>
+      <GuidedFlowPanel stage={guidedFlowStage} />
 
       <section className="ai-poster-setup" id="poster-ai-setup">
         <div className="ai-poster-panel">

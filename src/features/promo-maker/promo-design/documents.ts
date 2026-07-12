@@ -3,7 +3,6 @@ import type {
   PromoCanvasSizingMode,
   PromoDocument,
   PromoDocumentKind,
-  PromoImageLayer,
   PromoLayer,
   PromoLayerIdFactory,
   PromoPanel,
@@ -14,7 +13,6 @@ export const PROMO_DOCUMENT_SPECS: Record<PromoDocumentKind, PromoCanvas> = {
   "pamphlet-bifold": { width: 2480, height: 3508, backgroundColor: "#ffffff", overflow: "hidden" },
   "instagram-feed": { width: 1080, height: 1080, backgroundColor: "#ffffff", overflow: "hidden" },
   "instagram-story": { width: 1080, height: 1920, backgroundColor: "#ffffff", overflow: "hidden" },
-  "linkedin-cover": { width: 1584, height: 396, backgroundColor: "#ffffff", overflow: "hidden" },
 };
 
 let idSeed = 0;
@@ -92,39 +90,6 @@ export function createSocialDocumentFromPoster(
   };
 }
 
-export function createLinkedInCoverFromPoster(
-  poster: PromoDocument,
-  sizingMode: PromoCanvasSizingMode = "fit",
-  idFactory: PromoLayerIdFactory = defaultPromoIdFactory,
-): PromoDocument {
-  const canvas = makePromoCanvas("linkedin-cover");
-  const representativeImage = findRepresentativeImageLayer(poster.layers);
-  const layers = representativeImage
-    ? [createRepresentativeCoverLayer(representativeImage, canvas, sizingMode, idFactory)]
-    : [];
-
-  return {
-    id: idFactory("linkedin-cover"),
-    kind: "linkedin-cover",
-    title: `${poster.title} LinkedIn 커버`,
-    canvas,
-    layers,
-    sizingMode,
-    sourcePosterDocumentId: poster.id,
-    sourcePosterLayerIds: representativeImage ? [representativeImage.id] : [],
-  };
-}
-
-export function findRepresentativeImageLayer(layers: PromoLayer[]): PromoImageLayer | null {
-  const images = layers.filter((layer): layer is PromoImageLayer => {
-    if (layer.type !== "image" || !layer.isVisible) return false;
-    if (layer.imageRole === "qr" || layer.imageRole === "barcode") return false;
-    return !/(^|\s)(qr|qrcode|barcode|bar\s*code|바코드|큐알)($|\s)/i.test(layer.name);
-  });
-
-  return images.sort((a, b) => b.width * b.height - a.width * a.height)[0] ?? null;
-}
-
 function copyLayerIntoFrame(
   layer: PromoLayer,
   sourceCanvas: PromoCanvas,
@@ -185,39 +150,5 @@ function getScaledCanvasBounds(source: PromoCanvas, target: PromoCanvas, sizingM
     x: (target.width - source.width * scale) / 2,
     y: (target.height - source.height * scale) / 2,
     scale,
-  };
-}
-
-function createRepresentativeCoverLayer(
-  image: PromoImageLayer,
-  canvas: PromoCanvas,
-  sizingMode: PromoCanvasSizingMode,
-  idFactory: PromoLayerIdFactory,
-): PromoImageLayer {
-  const naturalWidth = image.naturalWidth ?? image.width;
-  const naturalHeight = image.naturalHeight ?? image.height;
-  const scale =
-    sizingMode === "original"
-      ? 1
-      : sizingMode === "fill"
-        ? Math.max(canvas.width / naturalWidth, canvas.height / naturalHeight)
-        : Math.min(canvas.width / naturalWidth, canvas.height / naturalHeight);
-  const width = naturalWidth * scale;
-  const height = naturalHeight * scale;
-
-  return {
-    ...image,
-    id: idFactory("cover-image"),
-    name: "LinkedIn 대표 이미지",
-    x: (canvas.width - width) / 2,
-    y: (canvas.height - height) / 2,
-    width,
-    height,
-    rotation: 0,
-    objectFit: sizingMode === "fill" ? "cover" : sizingMode === "fit" ? "contain" : "none",
-    crop: { scale: 1, offsetX: 0, offsetY: 0 },
-    zIndex: 0,
-    isLocked: false,
-    sourceLayerId: image.id,
   };
 }

@@ -2,8 +2,7 @@ export type PromoDocumentKind =
   | "poster"
   | "pamphlet-bifold"
   | "instagram-feed"
-  | "instagram-story"
-  | "linkedin-cover";
+  | "instagram-story";
 
 export type PromoCanvasSizingMode = "original" | "fit" | "fill";
 

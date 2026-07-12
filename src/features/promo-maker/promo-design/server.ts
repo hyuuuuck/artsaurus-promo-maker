@@ -5,7 +5,7 @@ type PromoDesignRow = {
   documentJson: string;
 };
 
-const allowedKinds = new Set<string>(["poster", "pamphlet-bifold", "instagram-feed", "instagram-story", "linkedin-cover"]);
+const allowedKinds = new Set<string>(["poster", "pamphlet-bifold", "instagram-feed", "instagram-story"]);
 
 export function promoDesignRowsToDocuments(rows: PromoDesignRow[]): Partial<Record<PromoDocumentKind, PromoDocument>> {
   const documents: Partial<Record<PromoDocumentKind, PromoDocument>> = {};
